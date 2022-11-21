@@ -1,0 +1,11 @@
+# 2 つの値の棒グラフ
+    plt.ylabel("time[s]")
+    plt.xlabel("top nodes[%]")
+    # 1つ目の棒グラフ
+    plt.bar(x_str, generating_time, color='b', width=0.3, label='generating', align="center")
+    # 2つ目の棒グラフ
+    plt.bar(x_str, searching_time, color='g', width=0.3, label='searching', align="center")
+    # 凡例
+    plt.legend(loc=2)
+    plt.savefig(precomputation_dirpath + "result_png/compare_precomputation.png")
+    plt.close()

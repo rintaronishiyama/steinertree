@@ -1,0 +1,991 @@
+""" method to get memory footprint """
+from __future__ import print_function
+from sys import getsizeof, stderr
+from itertools import chain
+from collections import deque
+try:
+    from reprlib import repr
+except ImportError:
+    pass
+
+def total_size(o, handlers={}, verbose=False):
+    """ Returns the approximate memory footprint an object and all of its contents.
+
+    Automatically finds the contents of the following builtin containers and
+    their subclasses:  tuple, list, deque, dict, set and frozenset.
+    To search other containers, add handlers to iterate over their contents:
+
+        handlers = {SomeContainerClass: iter,
+                    OtherContainerClass: OtherContainerClass.get_elements}
+
+    """
+    dict_handler = lambda d: chain.from_iterable(d.items())
+    all_handlers = {tuple: iter,
+                    list: iter,
+                    deque: iter,
+                    dict: dict_handler,
+                    set: iter,
+                    frozenset: iter,
+                   }
+    all_handlers.update(handlers)     # user handlers take precedence
+    seen = set()                      # track which object id's have already been seen
+    default_size = getsizeof(0)       # estimate sizeof object without __sizeof__
+
+    def sizeof(o):
+        if id(o) in seen:       # do not double count the same object
+            return 0
+        seen.add(id(o))
+        s = getsizeof(o, default_size)
+
+        if verbose:
+            print(s, type(o), repr(o), file=stderr)
+
+        for typ, handler in all_handlers.items():
+            if isinstance(o, typ):
+                s += sum(map(sizeof, handler(o)))
+                break
+        return s
+
+    return sizeof(o)
+""" method to get memory footprint """
+
+
+
+
+
+
+
+
+
+
+from functools import partial
+import sys
+from tabnanny import check
+import networkx as nx
+import random
+from collections import deque
+import time
+from numpy import maximum, number
+import timeout_decorator
+from retry import retry
+import copy
+from networkx.algorithms.approximation import steiner_tree
+import matplotlib.pyplot as plt
+import math
+import os
+import numpy as np
+
+""" 事前計算 """
+
+# 近傍の上位ノードを決定
+def decide_nearest_top_node(graph, i, top_nodes) :
+    nearest_top_node = -1
+    bfs = []
+    bfs.append([i]) # sourceのみの配列を追加
+    current_level = 0 # bfsの現時点の深さ
+    flag = 0
+    while flag == 0 :
+        neighbors = []
+        for j in range( len(bfs[current_level]) ) :
+            for k in graph.neighbors(bfs[current_level][j]):
+                if top_nodes.count(k) != 0 :
+                    nearest_top_node = k
+                    flag = 1
+                    return nearest_top_node
+                neighbors.append(k)   
+        bfs.append(neighbors)
+        current_level += 1
+    
+    if nearest_top_node == -1 :
+        print("Error : could not find nearest top node")
+        sys.exit(1)
+
+# sketch, partial_sketches生成
+def precomputation(graph, x, sketch, partial_sketches, partial_top_nodes, memory_usage, precomputation_time, generating_time, processing_time) :
+    # 計測開始
+    start = time.perf_counter()
+
+    # seed_nodes 決定
+    node = list(graph.nodes)
+    n = graph.number_of_nodes()
+    seed_nodes = []
+    size = 1
+    while size < (n / 2) : # denominator = 2 とする
+        added_seed_nodes = random.sample(node, size)
+        seed_nodes.append(added_seed_nodes)
+        size *= 2
+    print("Complete decideing seed nodes")
+
+    # sketch 初期化
+    for i in range(n) :
+        sketch.append(-1)
+    
+    # sketch生成準備
+    degree = sorted(graph.degree, key=lambda x: x[1], reverse=True) # 次数の降順にソート　(ノードid, 次数)　の配列
+    top_nodes = [] # sketch生成したノードidを格納する配列
+    checklist = [] # どの割合まで完了したか確認する配列
+    for i in x :
+        checklist.append( math.floor(i * n) )
+    count = 0
+
+    # sketch生成
+    for (i, j) in degree :
+        # 指定の割合分生成しているか確認
+        check_index = checklist.count("done")
+        if check_index != len(checklist) :
+            if not count < checklist[check_index] :
+                end = time.perf_counter()
+                precomputation_time[check_index] += end - start
+                generating_time[check_index] += end - start
+                partial_sketches[check_index] = sketch.copy() # 「= sketch」 では参照を渡してしまうためcopy()
+                partial_top_nodes[check_index] = top_nodes.copy() # 「= top_nodes」 では参照を渡してしまうためcopy()
+                print("Complete generating", x_str[check_index],"% sketch")
+                checklist[check_index] = "done"
+
+        sketch[i] = list(sketch_index(graph, i, seed_nodes))
+        top_nodes.append(i)
+        count += 1
+        print("Sketching top", count, "node")
+    end = time.perf_counter()
+    precomputation_time.append(end - start)
+    memory_usage.append(calc_MB(total_size(sketch)))
+    print("Complete generating all sketch")
+    # partial_sketchesの処理 (近傍ノード決定)
+    for i in range( len(partial_sketches) ) :
+        start = time.perf_counter()
+        for j in range( len(partial_sketches[i])) :
+            if partial_sketches[i][j] == -1 :
+                partial_sketches[i][j] = decide_nearest_top_node(graph, j, partial_top_nodes[i])
+        end = time.perf_counter()
+        precomputation_time[i] += end - start
+        processing_time[i] += end - start
+        memory_usage[i] += calc_MB(total_size(partial_sketches[i]))
+        print("Complete processing", x[i],"partial sketch")
+
+
+
+
+
+
+""" SketchLS """
+
+# SketchLS を実行
+def sketchls(graph, terminal, sketch):
+    terminal_number = len(terminal)
+    sketch_of_terminals = []
+    for i in terminal :
+        sketch_of_terminals.append(sketch[i])
+
+    # BFSをターミナル数分生成
+    # BFS の中身は BFS で訪れたノードのリストである nodes をターミナル数分配列にしたもの
+    # e.g., BFS = [nodes, nodes, nodes, ...]. nodes = [2, 4, 9, ...]
+    BFS = []
+    for i in range(terminal_number):
+        visited_nodes = bfs_sketch(terminal[i], sketch_of_terminals[i])
+        BFS.append(visited_nodes)
+
+    iter_num = 0    
+    
+    F = [] # F の中身は 訪問したノードをターミナル毎にリストにしたもの e.g., [[node, node,...], [node, node,...], ...] 
+    
+    S_cover = []
+    T = nx.Graph()
+    while BFS:
+        # BFS[iter_num]が空の配列であればiter_numを変更
+        while not BFS[iter_num] :
+            if iter_num != terminal_number - 1:
+                iter_num += 1
+            else:
+                iter_num = 0
+        v = BFS[iter_num][0]
+
+        if len(F) <= iter_num:
+            F.append([v])
+        else:
+            F[iter_num].append(v)
+        for j in range(terminal_number):
+            if j != iter_num:
+                if len(F) <= j:
+                    continue
+                else:
+                    neighbors = list(graph.neighbors(v)) # vの隣接ノードのリスト
+                    index_neighbor = 0
+                    count = 0
+                    n = 0
+                    # 他のターミナルの訪問済みノードリストの中に v の隣接ノードがあれば count を増やす
+                    while count == 0 and index_neighbor < len(neighbors):
+                        count += F[j].count(neighbors[index_neighbor])
+                        index_neighbor += 1 
+                    if count != 0:
+                        n = neighbors[index_neighbor - 1] # -1 することで F に含まれる v の隣接ノードに戻す
+
+                        cycle = []
+                        # 「注目しているターミナルから v への最短経路」と「v に隣接し j の訪問済みノードである n と jの最短経路」をあわせた経路
+                        # ↓ sketchの経路情報を使えばいいのでは？
+                        # p_tmp = nx.shortest_path(graph, source=terminal[iter_num], target=v) + nx.shortest_path(graph,source=n, target=terminal[j])
+                        for i in sketch_of_terminals[iter_num] :
+                            if i.count(v) != 0 :
+                                path1 = i[ 0 : i.index(v) + 1] # terminal[iter_num] から v までの経路を sketch から取得
+                                break
+                        for i in sketch_of_terminals[j] :
+                            if i.count(n) != 0 :
+                                path2 = i[i.index(n) :  : -1] # n から terminal[j] までの経路を sketch から取得 
+                                break
+                        p_tmp = path1 + path2
+                        # ここから
+                        flag = True
+                        for i in p_tmp :
+                            if p_tmp.count(i) != 1 :
+                               flag = False 
+                        if not flag :
+                            continue
+                        # ここまで怪しい, うまくいきはしても理由がわからない
+
+                        # 暫定シュタイナー木である　T に p_tmp の経路を加えた時、閉路ができないか確認
+                        Tcopy = T.copy()
+                        nx.add_path(Tcopy, p_tmp)
+                        cycle = nx.cycle_basis(Tcopy, terminal[iter_num])
+                        if len(cycle) != 0: # 閉路があるならjの次のループへ
+                            continue
+                        print(p_tmp, "is added")
+                        nx.add_path(T, p_tmp)
+
+                        # S_cover中に注目しているターミナルが含まれなければ追加
+                        if S_cover.count(terminal[iter_num]) == 0:
+                            S_cover.append(terminal[iter_num])
+                        # S_cover中に注目ターミナルと一緒に経路を追加したjがなければ追加
+                        if S_cover.count(terminal[j]) == 0:
+                            S_cover.append(terminal[j])
+                    continue
+            # j == iter_num ならjの次のループへ
+
+        if len(BFS[iter_num]) > 0:
+            BFS[iter_num].pop(0) #注目ターミナルのBFSの初めの要素を削除
+        
+        # S_coverがターミナル数以上, かつ T が連結なら while を抜け T を返す
+        if len(S_cover) >= terminal_number and nx.is_connected(T):
+            break
+        
+        # iter_num が最後(ターミナルの最終イテレータ)でなければインクリメント. そうでなければ 0 へ戻す (round-robinになる部分)
+        if iter_num != terminal_number - 1:
+            iter_num += 1
+        else:
+            iter_num = 0
+
+    return T
+
+# sketch を生成, path を返し, landmarksを参照でいじる
+# def sketch_index(graph, sketch_node, seed_nodes, landmarks, index): # landmarksいらない, indexもいらない
+def sketch_index(graph, sketch_node, seed_nodes):
+    tmp_path = []
+    shortest_path = 0
+    path = []
+    landmark_index = 0
+
+    for i in range(len(seed_nodes)):
+        # sketch_node と Si の最短経路を探し, Si内で最も近いノード(landmark)を見つける
+        for j in range(len(seed_nodes[i])):
+            tmp_path = nx.shortest_path(graph, source=sketch_node, target=seed_nodes[i][j])
+            if len(tmp_path) == 0 :
+                landmark_index = j
+                break
+            if j == 0:
+                shortest_path = len(tmp_path)
+                landmark_index = j
+            else:
+                if shortest_path > len(tmp_path):
+                    shortest_path = len(tmp_path)
+                    landmark_index = j
+        # path = [S0の最短経路, S1の最短経路, ...]
+        path.append(nx.shortest_path(graph, source=sketch_node, target=seed_nodes[i][landmark_index]))
+
+    return path
+
+# 幅優先探索
+def bfs_sketch(source, sketch_of_source) :
+    visited_nodes = [source]
+    len_list = []
+    for i in sketch_of_source :
+        len_list.append(len(i))
+    max_len = max(len_list)
+    for i in range(1, max_len) :
+        for j in range(len(sketch_of_source)) :
+            if (i + 1) > len(sketch_of_source[j]) :
+                continue
+            if not sketch_of_source[j][i] in visited_nodes :
+                visited_nodes.append(sketch_of_source[j][i])
+    
+    return visited_nodes
+
+
+
+
+
+""" 実行 """
+
+def my_algorithm(graph, terminal, partial_sketch) :
+    pair_of_terminal = [] # [ [変更前のターミナル1, 変更後のターミナル1], [変更前のターミナル2, 変更後のターミナル2], ...]
+    for i in range(len(terminal)) :
+        if isinstance(partial_sketch[terminal[i]], int) :
+            pair_of_terminal.append([ terminal[i], partial_sketch[terminal[i]] ])
+        else :
+            pair_of_terminal.append( [terminal[i], terminal[i]] )
+    tmp_terminal = []
+    for i in pair_of_terminal :
+        tmp_terminal.append(i[1])
+
+    tmp_terminal = list( set(tmp_terminal) ) # 近傍の上位ノードが同じであれば重複を削除
+
+    T = nx.Graph()
+    if len(tmp_terminal) != 1: # tmp_terminal(置き換え後のターミナル)が1個でなければ sketchls
+        print("tmp_terminal :", tmp_terminal)
+        T = sketchls(graph, tmp_terminal, partial_sketch)
+
+
+    for i in pair_of_terminal :
+        if i[0] != i[1] :
+            print(i[0], "-", i[1], "shortest path added")
+            path_to_add = nx.shortest_path(graph, source=i[1], target=i[0])
+            nx.add_path(T, path_to_add) # [変更前のターミナル1, 変更後のターミナル1]を経路として追加
+
+    # 求めたST中にターミナルが全て含まれるか確認
+    for i in terminals :
+        if list(T.nodes).count(i) == 0 :
+            print('Error : My algo ST does not involve all terminals')
+            sys.exit(1)
+    print('My algo ST involves all terminals')
+
+    # 求めたSTの全ての辺が元のグラフに含まれるか確認
+    for (i, j) in list(T.edges) :
+        if i not in graph.neighbors(j) :
+            print('Error : My algo ST involves edge missing in original graph')
+            sys.exit(1)
+    print('All edges of my algo ST are involved in original graph\n')
+
+    return T
+
+
+
+def execution(graph, x, sketch, partial_sketches, terminals, run_time, approx_errors, STs) :
+    # my_algorithm を実行 (partial_sketchesを利用)
+    my_algo_STs = [[] for i in range(len(x))] 
+    for i in range( len(x) ) :
+        print(x[i], "sketch begins")
+        start = time.perf_counter()
+        my_algo_STs[i] = my_algorithm(graph, terminals, partial_sketches[i])
+        end = time.perf_counter()
+
+        run_time[i] += end - start
+
+    # sketchLS を実行 (sketchを利用)
+    print("all sketch begins")
+    start = time.perf_counter()
+    sketchLS_ST = sketchls(graph, terminals, sketch)
+    sketchLS_ST_size = sketchLS_ST.size()
+    end = time.perf_counter()
+
+    if len(run_time) == len(x) :
+        run_time.append(end - start)
+    else :
+        run_time[len(x)] += end - start
+
+    # approx error 計算
+    for i in range( len(x) ) :
+        currentST_size = my_algo_STs[i].size()
+        approx_error = (currentST_size - sketchLS_ST_size) / sketchLS_ST_size
+        approx_errors[i] += approx_error
+    
+    # ST を記録
+    for i in my_algo_STs :
+        STs.append(i)
+    STs.append(sketchLS_ST)
+
+
+
+
+
+""" linda skstchls begin """
+
+def linda_sketchls(graph, terminal, denominator):
+    sketch = []
+    BFS = []
+    S_cover = []
+    T = nx.Graph()
+    node = list(graph.nodes)
+    node_number = graph.number_of_nodes()
+    node_other = copy.copy(node) #nodeの浅いコピー, 参照がnode_otherに渡される
+    terminal_number = len(terminal)
+    landmarks = [] # ターミナル毎のlandmarkのリスト [ターミナル1のlandmarkリスト, ターミナル2の...]
+    seed_nodes = []
+    # ターミナルをnode_otherから除く
+    for i in range(len(terminal)):
+        if node_other.count(terminal[i]) != 0:
+            node_other.remove(terminal[i])
+    # 要素数が2倍されていく seed nodes の集合 S1, S2, ... ,Sm を決定 (seed_nodesにすべて追加)
+    # seed_nodes = [S1, S2, S3, S4, ...] S1 = [node], S2 = [node, node]
+    size = 1
+    while size  < (node_number / denominator):
+        added_seed_nodes = random.sample(node_other, size)
+        seed_nodes.append(added_seed_nodes)
+        size *= 2
+    # sketchをターミナル数分生成
+    for i in range(terminal_number):
+        sketch.append(list(linda_sketch_index(graph, terminal[i], seed_nodes, landmarks, i)))
+    
+
+    # BFSをターミナル数分生成
+    # BFS の中身は BFS で訪れたノードのリストである nodes をターミナル数分配列にしたもの
+    # e.g., BFS = [nodes, nodes, nodes, ...]. nodes = [2, 4, 9, ...]
+    for i in range(terminal_number):
+        visited_nodes = linda_bfs(terminal[i], sketch[i])
+        BFS.append(visited_nodes)
+    
+
+    iter_num = 0    
+    
+    F = [] # F の中身は 訪問したノードをターミナル毎にリストにしたもの e.g., [[node, node,...], [node, node,...], ...] 
+    
+    while BFS:
+        v = BFS[iter_num][0]
+        if len(F) <= iter_num:
+            F.append([v])
+        else:
+            F[iter_num].append(v)   
+        for j in range(terminal_number):
+            if j != iter_num:
+                if len(F) <= j:
+                    continue
+                else:
+                    neighbors = list(graph.neighbors(v)) # vの隣接ノードのリスト
+                    index_neighbor = 0
+                    count = 0
+                    n = 0
+                    # 他のターミナルの訪問済みノードリストの中に v の隣接ノードがあれば count を増やす
+                    while count == 0 and index_neighbor < len(neighbors):
+                        count += F[j].count(neighbors[index_neighbor])
+                        index_neighbor += 1 
+                    if count != 0:
+                        n = neighbors[index_neighbor - 1] # -1 することで F に含まれる v の隣接ノードに戻す
+
+                        cycle = []
+                        # 「注目しているターミナルから v への最短経路」と「v に隣接し j の訪問済みノードである n と jの最短経路」をあわせた経路
+                        # ↓ sketchの経路情報を使えばいいのでは？
+                        # p_tmp = nx.shortest_path(graph, source=terminal[iter_num], target=v) + nx.shortest_path(graph,source=n, target=terminal[j])
+                        for i in sketch[iter_num] :
+                            if i.count(v) != 0 :
+                                path1 = i[ 0 : i.index(v) + 1] # terminal[iter_num] から v までの経路を sketch から取得
+                                break
+                        for i in sketch[j] :
+                            if i.count(n) != 0 :
+                                path2 = i[i.index(n) :  : -1] # n から terminal[j] までの経路を sketch から取得 
+                                break
+                        p_tmp = path1 + path2
+                        # 暫定シュタイナー木である　T に p_tmp の経路を加えた時、閉路ができないか確認
+                        Tcopy = T.copy()
+                        nx.add_path(Tcopy, p_tmp)
+                        cycle = nx.cycle_basis(Tcopy, terminal[iter_num])
+                        if len(cycle) != 0: # 閉路があるならjの次のループへ
+                            continue
+
+                        nx.add_path(T, p_tmp)
+
+                        # S_cover中に注目しているターミナルが含まれなければ追加
+                        if S_cover.count(terminal[iter_num]) == 0:
+                            S_cover.append(terminal[iter_num])
+                        # S_cover中に注目ターミナルと一緒に経路を追加したjがなければ追加
+                        if S_cover.count(terminal[j]) == 0:
+                            S_cover.append(terminal[j])
+                    continue
+            # j == iter_num ならjの次のループへ
+
+        if len(BFS[iter_num]) > 0:
+            BFS[iter_num].pop(0) #注目ターミナルのBFSの初めの要素を削除
+        
+        # S_coverがターミナル数以上, かつ T が連結なら while を抜け T を返す
+        if len(S_cover) >= terminal_number and nx.is_connected(T):
+            break
+        
+        # iter_num が最後(ターミナルの最終イテレータ)でなければインクリメント. そうでなければ 0 へ戻す (round-robinになる部分)
+        if iter_num != terminal_number - 1:
+            iter_num += 1
+        else:
+            iter_num = 0
+
+    return T
+
+def linda_sketch_index(graph, terminal_node, seed_nodes, landmarks, index):
+    SPT = []
+    tmp_path = []
+    shortest_path = 0
+    path = []
+    landmark_index = 0
+
+    for i in range(len(seed_nodes)):
+        # terminal_node と Si の最短経路を探し, Si内で最も近いノード(landmark)を見つける
+        for j in range(len(seed_nodes[i])):
+            tmp_path = nx.shortest_path(graph, source=terminal_node, target=seed_nodes[i][j])
+            if len(tmp_path) == 0 :
+                landmark_index = j
+                break
+            if j == 0:
+                shortest_path = len(tmp_path)
+                # ↓これ　landmark_index = j では？
+                # landmark_index = i
+                landmark_index = j
+            else:
+                if shortest_path > len(tmp_path):
+                    shortest_path = len(tmp_path)
+                    # ↓これも　landmark_index = j では？
+                    # landmark_index = i
+                    landmark_index = j
+        # path = [S0の最短経路, S1の最短経路, ...]
+        path.append(nx.shortest_path(graph, source=terminal_node, target=seed_nodes[i][landmark_index]))
+
+
+        if i == 0: # 初めはそのまま追加
+            landmarks.append([seed_nodes[i][landmark_index]])
+        elif landmarks[index].count(seed_nodes[i][landmark_index]) == 0: # それ以降はSiのlandmarkがすでに追加されてるものでない場合に追加
+            landmarks[index].append(seed_nodes[i][landmark_index])
+        i += 1
+
+    return path
+
+def linda_bfs(source, sketch_of_source) :
+    visited_nodes = [source]
+    len_list = []
+    for i in sketch_of_source :
+        len_list.append(len(i))
+    max_len = max(len_list)
+    for i in range(1, max_len) :
+        for j in range(len(sketch_of_source)) :
+            if (i + 1) > len(sketch_of_source[j]) :
+                continue
+            if not sketch_of_source[j][i] in visited_nodes :
+                visited_nodes.append(sketch_of_source[j][i])
+    
+    return visited_nodes
+
+""" linda sketchls end """
+
+
+
+
+
+""" ターミナルの決定 """
+def decide_terminals(graph, number_of_terminals) :
+    random.seed() # 乱数初期化
+    terminals = random.sample(graph.nodes, number_of_terminals)
+    print('terminals :', terminals)
+    print('Complete sampling terminals\n')
+    
+    return terminals
+
+
+
+
+
+""" メモリの計算 """
+def calc_MB(memory) :
+    return memory / (1024 * 1024)
+
+
+
+
+""" sketch を保存 """
+def save_sketches(sketch, precomputation_dirpath, partial_sketches) :
+    # sketch を保存
+    f = open(precomputation_dirpath + 'sketch_txt/sketch.txt', 'w')
+
+    for i in sketch :
+        for j in i :
+            for k in j :
+                f.write(str(k) + " ")
+            f.write("next ")
+        f.write("end\n")
+    
+    f.close()
+
+
+    # partial_sketches を保存
+    f = open(precomputation_dirpath + 'sketch_txt/partial_sketches.txt', 'w')
+
+    for i in partial_sketches :
+        for j in i :
+            if isinstance(j, int) :
+                f.write(str(j) + "\n")
+            else :
+                for k in j :
+                    for l in k :
+                        f.write(str(l) + " ")
+                    f.write("next ")
+                f.write("end\n")
+        f.write("done\n")
+    
+    f.close()
+
+
+
+
+
+""" sketch を読み込み """
+def load_sketches(sketch, precomputation_dirpath, partial_sketches) :
+    # sketch を読み込み
+    f = open(precomputation_dirpath + "sketch_txt/sketch.txt", "r")
+
+    lines = f.readlines()
+    for line in lines :
+        datalist = line.split()
+        tmp_sketch = []
+        tmp_shortest_path = []
+        for data in datalist :
+            if data == "end" :
+                break
+            if data == "next" :
+                tmp_sketch.append(tmp_shortest_path)
+                tmp_shortest_path = []
+                continue
+            tmp_shortest_path.append(int(data))
+        sketch.append(tmp_sketch)
+    
+    f.close()
+
+
+    # partial_sketches を読み込み
+    f = open(precomputation_dirpath + "sketch_txt/partial_sketches.txt", "r")
+
+    lines = f.readlines()
+    index = 0
+    for line in lines :
+        datalist = line.split()
+        if datalist[0] == "done" :
+            index += 1
+        elif len(datalist) == 1 :
+            partial_sketches[index].append(int(datalist[0]))
+        else :
+            tmp_sketch = []
+            tmp_shortest_path = []
+            for data in datalist :
+                if data == "end" :
+                    break
+                if data == "next" :
+                    tmp_sketch.append(tmp_shortest_path)
+                    tmp_shortest_path = []
+                    continue
+                tmp_shortest_path.append(int(data))
+            partial_sketches[index].append(tmp_sketch)
+    
+    f.close()
+
+
+
+
+
+
+""" 結果を保存 """
+def save_result(list, precomputation_dirpath, name_of_list) :
+    path = precomputation_dirpath + "result_txt/" + name_of_list + ".txt"
+    f = open(path, "w")
+
+    for data in list :
+        f.write(str(data) + "\n")
+
+    f.close()
+
+
+
+
+
+""" 結果を読み込み """
+def load_result(list, precomputation_dirpath, name_of_list) :
+    path = precomputation_dirpath + "result_txt/" + name_of_list + ".txt"
+    f = open(path, "r")
+
+    lines = f.readlines()
+    for line in lines :
+        list.append(float(line))
+
+    f.close()
+
+
+
+
+
+""" main """
+# グラフ読み込み
+dataset = input("enter dataset without extention(.) : ")
+dataset_filepath = "../dataset/" + dataset + ".txt"
+if not os.path.isfile(dataset_filepath) :
+    print("there is no such file")
+    sys.exit(1)
+f = open(dataset_filepath, 'r')
+datalist = f.readlines()
+f.close()
+G = nx.Graph()
+for data in datalist :
+    edge = data.split()
+    if edge[0] != edge[1] : # セルフループは追加しない
+        G.add_edge( int(edge[0]), int(edge[1]) )
+if not nx.is_connected(G) :
+    print("This dataset is not connected")
+    sys.exit(1)
+print('Complete loading input file\n')
+
+# データセットのフォルダ作成
+dataset_dirpath = "./" + dataset + "/"
+if not os.path.isdir(dataset_dirpath) :
+    os.makedirs(dataset_dirpath) # フォルダ作成
+
+# 生成済みの事前計算結果の一覧を表示
+listdir = os.listdir(dataset_dirpath)
+print("there are following precomputation results")
+for i in listdir :
+    if os.path.isdir(dataset_dirpath + i) :
+        print(i)
+print()
+
+# 事前計算 or 実行 選択
+print("seletct mode")
+print("1 : precomputation")
+print("2 : execution")
+print("3 : degree")
+mode = input()
+print()
+
+# 事前計算結果の条件設定
+interval = float(input("enter interval of top nodes :")) # トップの割合を刻む間隔
+times = int(input("enter times of repeating interval :")) # 間隔を何回繰り返すか
+x = [] # トップの割合 
+x_str = [] # 図として表示するためのx
+for i in range(1, times + 1) :
+    x.append(round(i * interval, 3))
+    x_str.append( str( round(i * interval * 100, 1) ) )
+x_str_with_all = x_str + ["all"]
+
+# データセット内事前計算結果の条件毎の path
+pair_of_conditions = str(interval) + "times" + str(times)
+precomputation_dirpath = dataset_dirpath + pair_of_conditions + "/" # ./データセット名/○○times○○/
+
+# 事前計算
+if mode == "1" :
+    if os.path.isdir(precomputation_dirpath) :
+        print("such precomputation result already exists")
+        sys.exit(0)
+    os.makedirs(precomputation_dirpath) #　事前計算結果毎のディレクトリ「./データセット名/○○times○○/」作成
+    os.makedirs(precomputation_dirpath + "result_png/ST_png")
+    os.makedirs(precomputation_dirpath + "result_txt")
+    os.makedirs(precomputation_dirpath + "sketch_txt")
+
+    memory_usage = [0 for i in range(len(x))]
+    precomputation_time = [0 for i in range(len(x))]
+    generating_time = [0 for i in range(len(x))]
+    processing_time = [0 for i in range(len(x))]
+
+    partial_sketches = [[] for i in range(len(x))]
+    partial_top_nodes = [[] for i in range(len(x))]
+    sketch = []
+
+    precomputation(G, x, sketch, partial_sketches, partial_top_nodes, memory_usage, precomputation_time, generating_time, processing_time) 
+    
+    save_sketches(sketch, precomputation_dirpath, partial_sketches)
+    save_result(memory_usage, precomputation_dirpath,"memory_usage")
+    save_result(precomputation_time, precomputation_dirpath, "precomputation_time")
+
+    plt.ylabel("precomputation time[s]")
+    plt.xlabel("top nodes[%]")
+    plt.bar(x_str_with_all, precomputation_time)
+    plt.savefig(precomputation_dirpath + "result_png/precomputation_time.png")
+    plt.close()
+
+    plt.ylabel("time[s]")
+    plt.xlabel("top nodes[%]")
+    # 1つ目の棒グラフ
+    plt.bar(x_str, generating_time, color='b', width=0.3, label='generating', align="center")
+    # 2つ目の棒グラフ
+    plt.bar(x_str, processing_time, color='g', width=0.3, label='processing', align="center")
+    # 凡例
+    plt.legend(loc=2)
+    plt.savefig(precomputation_dirpath + "result_png/compare_precomputation.png")
+    plt.close()
+    
+    plt.ylabel("memory usage[MB]")
+    plt.xlabel("top nodes[%]")
+    plt.bar(x_str_with_all, memory_usage)
+    plt.savefig(precomputation_dirpath + "result_png/memory_usage.png")
+    plt.close()
+     
+    plt.ylabel("precomputation time[s]")
+    plt.xlabel("memory usage[MB]")
+    plt.scatter(memory_usage, precomputation_time)
+    plt.grid()
+    plt.savefig(precomputation_dirpath + "result_png/precomputation_time_for_memory_usage.png")
+    plt.close()
+
+    f = open(precomputation_dirpath + "result_txt/precomputation_result.txt", "w")
+
+    f.write("memory_usage[MB]\n")
+    for i in range( len(x_str_with_all)  ):
+        line = x_str_with_all[i] + " : " + str(memory_usage[i])
+        f.write(line + "\n")
+
+    f.write("precomputation time[s]\n")
+    for i in range( len(x_str_with_all) ):
+        line = x_str_with_all[i] + " : " + str(precomputation_time[i])
+        f.write(line + "\n")
+    
+    f.write("generating time[s]\n")
+    for i in range( len(x_str) ) :
+        line = x_str[i] + " : " + str(generating_time[i])
+        f.write(line + "\n")
+
+    f.write("processing time[s]\n")
+    for i in range( len(x_str) ) :
+        line = x_str[i] + " : " + str(processing_time[i])
+        f.write(line + "\n")
+
+    f.close()
+
+# 実行
+elif mode == "2" :
+    if not os.path.isdir(precomputation_dirpath) :
+        print("such precomputation result does not exist!")
+        print("please precompute before execution!")
+        sys.exit(1)
+
+    number_of_terminals = int(input("enter number of terminals :")) # ターミナル数
+
+    number_for_averaging = 10 # 平均をとるための試行回数
+
+    run_time = [0 for i in range(len(x))]
+    approx_errors = [0 for i in range(len(x))]
+    STs = [[] for i in range(number_for_averaging)]
+    terminals_list = []
+    partial_sketches = [[] for i in range(len(x))]
+    sketch = []
+    memory_usage = []
+    precomputation_time = []
+    load_sketches(sketch, precomputation_dirpath, partial_sketches)
+    load_result(memory_usage, precomputation_dirpath,"memory_usage")
+    load_result(precomputation_time, precomputation_dirpath,"precomputation_time")
+    # 実行
+    for i in range(0, number_for_averaging) :
+        print("---------------- trial", i + 1, "----------------")
+        
+        # ターミナルの決定
+        terminals = decide_terminals(G, number_of_terminals)
+        terminals_list.append(terminals)
+
+        # my_algorithm と sketchlsを実行
+        execution(G, x, sketch, partial_sketches, terminals, run_time, approx_errors, STs[i])
+
+    # 最小のSTとSketchLSのSTのサイズを取得
+    min_ST_size_list = []
+    sketchLS_size_list = []
+    for i in STs :
+        min = 10000
+        for j in i :
+            if j.size() < min :
+                min = j.size()
+        min_ST_size_list.append(min)
+        sketchLS_size_list.append(i[-1].size())
+
+    # 平均化
+    for i in range(len(x)) :
+        run_time[i] /= number_for_averaging
+        approx_errors[i] *= 100
+        approx_errors[i] /= number_for_averaging
+    run_time[len(x)] /= number_for_averaging # sketchLSの分
+    average_min_ST_size = np.average(min_ST_size_list)
+    average_sketchLS_size = np.average(sketchLS_size_list)
+
+    """ pngファイルに結果を保存 """
+    # ST の図を保存
+    for i in range( len(x_str_with_all) ) :
+        if x_str_with_all[i] == "all" :
+            file_name = "all"
+        else :
+            file_name = x_str_with_all[i] + "%ST"
+        plt.title(file_name)
+        nx.draw_networkx(STs[0][i])
+        file_name += ".png"
+        file_path = precomputation_dirpath + "result_png/ST_png/" + file_name
+        plt.savefig(file_path)
+        plt.close()
+
+
+    plt.ylabel("run time[s]")
+    plt.xlabel("top nodes[%]")
+    plt.bar(x_str_with_all, run_time)
+    plt.savefig(precomputation_dirpath + "result_png/runtime.png")
+    plt.close()
+
+    plt.ylabel("approx error[%]")
+    plt.xlabel("top nodes[%]")
+    plt.bar(x_str, approx_errors)
+    plt.savefig(precomputation_dirpath + "result_png/approx_error.png")
+    plt.close()
+
+    plt.ylabel("run time[s]")
+    plt.xlabel("memory usage[MB]")
+    plt.scatter(memory_usage, run_time)
+    plt.grid()
+    plt.savefig(precomputation_dirpath + "result_png/run_time_for_memory_usage.png")
+    plt.close()
+
+    memory_usage_without_all = []
+    for i in range( len(memory_usage) ) :
+        if i != (len(memory_usage) - 1) :
+            memory_usage_without_all.append(memory_usage[i])
+    plt.ylabel("approx error[%]")
+    plt.xlabel("memory usage[MB]")
+    plt.scatter(memory_usage_without_all, approx_errors)
+    plt.grid()
+    plt.savefig(precomputation_dirpath + "result_png/approx_error_for_memory_usage.png")
+    plt.close()
+
+
+
+    """ テキストファイルに結果を保存 """
+    # ターミナルを保存
+    f = open(precomputation_dirpath + 'result_txt/terminals.txt', 'w')
+    for i in range( len(terminals_list) ) :
+        line = "trial " +  str(i+1) + " : " + str(terminals_list[i])
+        f.write(line + "\n")
+    f.close()
+
+
+
+    # 評価を保存
+    f = open(precomputation_dirpath + 'result_txt/execution_result.txt', 'w')
+
+    f.write("run time[s]\n")
+    for i in range( len(x_str_with_all) ):
+        line = x_str_with_all[i] + " : " + str(run_time[i])
+        f.write(line + "\n")
+
+    f.write("approx error[%]\n")
+    for i in range( len(x_str) ):
+        line = x_str[i] + " : " + str(approx_errors[i])
+        f.write(line + "\n")
+
+    f.write("ST size\n")
+    f.write("average min ST size : " + str(average_min_ST_size) +"\n")
+    f.write("average sketchLS ST size : " + str(average_sketchLS_size) + "\n")
+    f.close()
+
+elif mode == "3" :
+    f = open(dataset_dirpath + 'degree.txt', 'w')
+    degree = sorted(G.degree, key=lambda x: x[1], reverse=True) # 次数の降順にソート　(ノードid, 次数)　の配列
+    dict_degree = dict(degree)
+    plt.bar(*np.unique(list(dict_degree.values()), return_counts=True))
+    plt.title("Degree histogram")
+    plt.xlabel("Degree")
+    plt.ylabel("# of Nodes")
+    plt.savefig(dataset_dirpath + "degree_distribution.png")
+    for (i,j) in degree:
+        line = str(i) + " : " + str(j)
+        f.write(line + "\n")
+    f.close()
+
+else :
+    print("select right mode")
+    sys.exit(1)
