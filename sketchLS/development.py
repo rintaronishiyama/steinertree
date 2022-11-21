@@ -960,12 +960,12 @@ elif mode == "2" :
     plt.ylabel("time[s]")
     plt.xlabel("top nodes[%]")
     # 1つ目の棒グラフ
-    plt.bar(top_rates_str[:-1], run_time[:-1], color='b', width=0.3, label='execution', align="center")
+    plt.bar(top_rates_str[:-1], run_time[:-1], color='b', width=0.3, label='execution', align="center", bottom=search_time)
     # 2つ目の棒グラフ
     plt.bar(top_rates_str[:-1], search_time, color='g', width=0.3, label='search', align="center")
     # 凡例
     plt.legend(loc=2)
-    plt.savefig(execution_dirpath + "result_png/compare_precomputation.png")
+    plt.savefig(execution_dirpath + "result_png/compare_execution.png")
     plt.close()
 
     plt.ylabel("precomputation time[s]")
