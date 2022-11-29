@@ -868,7 +868,7 @@ elif mode == "2" :
 
     number_of_terminals = int(input("enter number of terminals :")) # ターミナル数
 
-    number_for_averaging = 10 # 平均をとるための試行回数
+    number_for_averaging = 1000 # 平均をとるための試行回数
 
     search_time = [0 for i in range(len(top_rates))]
     run_time = [0 for i in range(len(top_rates))]
@@ -1034,30 +1034,35 @@ elif mode == "2" :
     plt.bar(top_rates_str[:-1], search_time, color='g', width=0.3, label='search', align="center")
     # 凡例
     plt.legend(loc=2)
+    plt.xticks(rotation=45)
     plt.savefig(execution_dirpath + "result_png/compare_execution.png")
     plt.close()
 
     plt.ylabel("precomputation time[s]")
     plt.xlabel("top nodes[%]")
     plt.bar(top_rates_str, precomputation_time_list)
+    plt.xticks(rotation=45)
     plt.savefig(execution_dirpath + "result_png/precomputation_time.png")
     plt.close()
 
     plt.ylabel("memory usage[MB]")
     plt.xlabel("top nodes[%]")
     plt.bar(top_rates_str, memory_usage_list)
+    plt.xticks(rotation=45)
     plt.savefig(execution_dirpath + "result_png/memory_usage.png")
     plt.close()
 
     plt.ylabel("run time[s]")
     plt.xlabel("top nodes[%]")
     plt.bar(top_rates_str, run_time)
+    plt.xticks(rotation=45)
     plt.savefig(execution_dirpath + "result_png/runtime.png")
     plt.close()
 
     plt.ylabel("approx error[%]")
     plt.xlabel("top nodes[%]")
     plt.bar(top_rates_str[:-1], approx_errors)
+    plt.xticks(rotation=45)
     plt.savefig(execution_dirpath + "result_png/approx_error.png")
     plt.close()
 
