@@ -78,7 +78,7 @@ vector<int> Graph::get_node_list_sorted_by_degree(){
 void Graph::add_edge(int n1, int n2){
     // セルフループは追加しない
     if (n1 == n2) {
-        throw "Self-loop is not acceptable!";
+        return;
     }
 
     // すでにあるエッジは追加しない (多重辺の禁止)
@@ -88,7 +88,7 @@ void Graph::add_edge(int n1, int n2){
     vector<int>::iterator find_itr2
         = find(dic[n2].begin(), dic[n2].end(), n1);
     if ( ( find_itr1 != dic[n1].end() ) || ( find_itr2 != dic[n2].end() ) ) {
-        throw "Multiple edges is not acceptable!";
+        return;
     }
 
     // adjacency_list に n1 -> n2, n2 -> n1 を追加(無向のため)

@@ -16,12 +16,12 @@ using std::endl;
 
 // debug
 void print_vector(const vector<int>& vec) {
-    for (int a : vec) {
-        if (a == vec.front()) {
+    for (int i =0 ; i < vec.size(); ++i) {
+        if (i == 0) {
             cout << "[ ";
         }
-        cout << a << " ";
-        if (a == vec.back()) {
+        cout << vec[i] << " ";
+        if (i == vec.size() - 1) {
             cout << "]" << endl;
         }
     }
@@ -134,16 +134,6 @@ Graph sketchLS(
 
 
 
-    // debug
-    cout << "BFS of terminals" << endl;
-    for (int terminal : terminals) {
-        cout << terminal << " : ";
-        print_vector(BFS_of_terminals[terminal]);
-    }
-    cout << "max_BFS_size : " << max_BFS_size << endl;
-
-
-
     unordered_map<int, vector<int> > visited_nodes_of_terminals; // ターミナル毎の訪問したノード
     vector<int> set_of_covered_terminals;                        // カバーしたターミナル
 
@@ -151,39 +141,25 @@ Graph sketchLS(
     
     /* round-robin 方式で BFS をローカルサーチ (探索中のノードが訪問済みノードと隣接かどうか確認) */
     for (int i = 0; i < max_BFS_size; ++i) {
-        // debug
-        cout << "depth : " << i << endl;
-        cout << "visited_nodes of terminals" << endl;
-        for (int terminal : terminals) {
-            cout << terminal << " : ";
-            print_vector(visited_nodes_of_terminals[terminal]);
-        }
-
-
-
-
         for (const pair<int, vector<int> >& item : BFS_of_terminals ) {
             int searching_terminal = item.first;       // 探索中のターミナル
             vector<int> searching_BFS = item.second;   // 探索中の BFS
-            cout << "searching_terminal : " << searching_terminal << endl;
 
+            if (static_cast<int>( searching_BFS.size() ) < i + 1) {
+                continue;
+            }
             int v = searching_BFS[i];                                       // 探索中のノード
             visited_nodes_of_terminals[searching_terminal].push_back(v);    // v を訪問済みに
             vector<int> neighbors_of_v = graph.get_adjacency_list().at(v);  // v の隣接ノードのリスト
 
-            cout << "v = " << v << " : ";
-            print_vector(neighbors_of_v);
 
 
             // v の隣接ノードが探索中でないターミナルの訪問ノードにあればその path を追加 (閉路ができない場合)
             for (int other_terminal : terminals) {
-                cout << "other_terminal : " << other_terminal << " ";
                 if (other_terminal == searching_terminal) {
-                    cout << "skip cuz of same" << endl;
                     continue; // 探索中のターミナルは飛ばす
                 }
                 if ( visited_nodes_of_terminals[other_terminal].empty() ) {
-                    cout << "skip cuz of empty" << endl;
                     continue; // 訪問したノードが 1 つもなければ飛ばす
                 }
                 for (int neighbor_of_v : neighbors_of_v) {
@@ -192,10 +168,8 @@ Graph sketchLS(
                         visited_nodes_of_terminals[other_terminal].end(),
                         neighbor_of_v
                     );
-                    cout << "neighbor : " << neighbor_of_v << endl;
                     
                     if ( find_itr != visited_nodes_of_terminals[other_terminal].end() ) {
-                        cout << "in" << endl;
                         /* [searching_terminal, ..., v, n, ..., other_terminal] を生成 */
                         int n = *find_itr; // v に隣接し, terminal の BFS で訪問済みのノード
 
@@ -206,16 +180,13 @@ Graph sketchLS(
                         reverse(path_to_other_terminal.begin(), path_to_other_terminal.end());  // 逆順にソート [n, ..., other_terminal] とする
                         
                         vector<int> tmp_path = concatenate_path(path_from_searching_terminal, path_to_other_terminal);
-                        cout << "in" << endl;
 
                         /* 閉路ができないか確認 */
                         Graph Tcopy{T};
                         Tcopy.add_path(tmp_path);
-                        cout << "okay" << endl;
                         if ( Tcopy.has_cycle() ) {
                             continue;
                         }
-                        cout << "in" << endl;
 
                         /* path の追加と set_of_covered_terminals への追加 */
                         T.add_path(tmp_path);
@@ -226,16 +197,13 @@ Graph sketchLS(
                         if ( find(set_of_covered_terminals.begin(), set_of_covered_terminals.end(), other_terminal) == set_of_covered_terminals.end() ) {
                             set_of_covered_terminals.push_back(other_terminal);
                         }
-                        cout << "in" << endl;
-
-                        cout << set_of_covered_terminals.size() << endl;
                     }
-                }
-            if (T.is_connected() && ( set_of_covered_terminals.size() == terminals.size() ) ) {
-                return T;
-            }    
+                }  
             }
         }
+    }
+    if (T.is_connected() && ( set_of_covered_terminals.size() == terminals.size() ) ) {
+        return T;
     }
 }
 
