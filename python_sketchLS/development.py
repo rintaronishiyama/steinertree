@@ -222,7 +222,7 @@ def sketchls(graph, terminal, sketch):
                         flag = True
                         for i in p_tmp :
                             if p_tmp.count(i) != 1 :
-                               flag = False 
+                                flag = False 
                         if not flag :
                             continue
                         # ここまで怪しい, うまくいきはしても理由がわからない
