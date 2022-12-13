@@ -14,6 +14,7 @@
 
 using std::vector;
 using std::unordered_map;
+using std::unordered_set;
 using std::pair;
 using std::find;
 using std::priority_queue;
@@ -32,13 +33,7 @@ const int INF = 1e9;
 
 /* getter 関数 */
 std::vector<int> Graph::get_node_list() const{
-    vector<int> node_list;
-    // ノードidのvectorを作成
-    for (const pair<int, vector<int> >& item : this->adjacency_list) {
-        node_list.push_back(item.first);
-    }
-
-    return node_list;
+    return this->node_list;
 }
 
 const std::unordered_map<int, std::vector<int> >& Graph::get_adjacency_list() const{
@@ -46,7 +41,7 @@ const std::unordered_map<int, std::vector<int> >& Graph::get_adjacency_list() co
 }
 
 int Graph::get_number_of_nodes() const{
-    return get_node_list().size();
+    return this->node_list.size();
 }
 
 int Graph::get_number_of_edges() const{
@@ -55,14 +50,15 @@ int Graph::get_number_of_edges() const{
     for (const pair<int, vector<int> >& item : this->adjacency_list) {
         number_of_edges += item.second.size();
     }
-    
+    number_of_edges /= 2; // 無向で同じ辺が2回カウントされるため
+
     return number_of_edges;
 }
 
 
 // ノードを次数の降順にソートしたリストを返す
 vector<int> Graph::get_node_list_sorted_by_degree(){
-    vector<int> node_list_sorted_by_degree = this->get_node_list();
+    vector<int> node_list_sorted_by_degree = this->node_list;
     sort(
         node_list_sorted_by_degree.begin(),
         node_list_sorted_by_degree.end(),
@@ -95,6 +91,14 @@ void Graph::add_edge(int n1, int n2){
     // adjacency_list に n1 -> n2, n2 -> n1 を追加(無向のため)
     this->adjacency_list[n1].push_back(n2);
     this->adjacency_list[n2].push_back(n1);
+
+    // node_list になければ追加
+    if (find(this->node_list.begin(), this->node_list.end(), n1) == this->node_list.end()) {
+        this->node_list.push_back(n1);
+    }
+    if (find(this->node_list.begin(), this->node_list.end(), n2) == this->node_list.end()) {
+        this->node_list.push_back(n2);
+    }
 }
 
 void Graph::delete_edge(int n1, int n2) {
@@ -112,12 +116,14 @@ void Graph::delete_edge(int n1, int n2) {
         dic[n2].erase(find_itr2);
     }
 
-    // n1, n2 の隣接ノードがなければ adjacency_list から削除
+    // n1, n2 の隣接ノードがなければ adjacency_list と node_list から削除
     if ( dic[n1].empty() ) {
         dic.erase(n1);
+        this->node_list.erase(find(this->node_list.begin(), this->node_list.end(), n1));
     }
     if ( dic[n2].empty() ) {
         dic.erase(n2);
+        this->node_list.erase(find(this->node_list.begin(), this->node_list.end(), n1));
     }
 }
 
@@ -188,89 +194,6 @@ std::vector<int> Graph::find_shortest_path(int source, int target) const {
 
     return shortest_path;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// takishi 追加
-// sketch_node と Si の最短経路を返す
-// 引数 : sketch_node, 集合 Si
-// 返り値 : sketch_node と Si の最短経路
-std::vector<int> Graph::bfs(int sketch_node, const std::vector<int>& seed_node_set) const {
-    // seed_node_set を unordered_set に
-    std::unordered_set<int> seed_nodes;
-    for (int seed : seed_node_set) seed_nodes.insert(seed);
-
-    vector<int> shortest_path;
-    if (seed_nodes.count(sketch_node)) { // sketch_node が Si に含まれているとき
-        shortest_path.push_back(sketch_node);
-        return shortest_path;
-    }
-
-    int n = get_number_of_nodes();
-    std::vector<int> dist(n, INF);
-    std::vector<int> pre(n, -1); // 経路として見たとき一個前の頂点
-    std::queue<int> que;
-    que.push(sketch_node);
-    dist[sketch_node] = 0;
-
-    int target = 0; // Si に属する頂点のうち, sketch_node から一番近いもの
-
-    while (!que.empty()) {
-        // 現在頂点
-        int from = que.front();
-        que.pop();
-
-        // Si に属する頂点に辿り着いたかどうか
-        bool find_Si = false;
-
-        for (const int& to : adjacency_list.at(from)) { // from の隣接頂点を見ていく
-            if (dist[to] != INF) continue;
-            dist[to] = dist[from] + 1;
-            pre[to] = from;
-
-            if (seed_nodes.count(to)) { // to が Si に属するならそこで終了
-                target = to;
-                find_Si = true;
-                break;
-            } 
-
-            que.push(to);
-        }
-
-        if (find_Si) break;
-    }
-
-    // target から巻き戻し, 最短経路を構築
-    for (int i = target; ; target = pre[target]) {
-        shortest_path.push_back(i);
-    }
-    reverse( shortest_path.begin(), shortest_path.end() );
-
-    return shortest_path;
-}
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // 連結であるか確認. 連結なら true そうでなければ false

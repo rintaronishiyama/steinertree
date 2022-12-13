@@ -2,6 +2,8 @@
 #include <algorithm> // std::max, std::find, std::reverse
 #include <iostream>
 #include <unordered_map>
+#include <unordered_set>
+#include <queue>
 #include <utility>   // std::pair
 #include "graph.h"
 
@@ -9,10 +11,12 @@ using std::vector;
 using std::max;
 using std::find;
 using std::unordered_map;
+using std::unordered_set;
 using std::pair;
 using std::reverse;
 using std::cout;
 using std::endl;
+using std::queue;
 
 // debug
 void print_vector(const vector<int>& vec) {
@@ -38,18 +42,82 @@ vector<int> concatenate_path(
     vector<int> path_to_be_added,
     const vector<int>& path_to_add);
 
+
+// takishi 追加
+// sketch_node と Si の最短経路を返す
+// 引数 : sketch_node, 集合 Si
+// 返り値 : sketch_node と Si の最短経路
+std::vector<int> bfs_to_seed_node(
+    const Graph& graph,
+    int sketch_node,
+    const unordered_set<int>& seed_node_set)
+{
+    // seed_node_set を unordered_set に
+    std::unordered_set<int> seed_nodes;
+    for (int seed : seed_node_set) seed_nodes.insert(seed);
+
+    vector<int> shortest_path;
+    if (seed_nodes.count(sketch_node)) { // sketch_node が Si に含まれているとき
+        shortest_path.push_back(sketch_node);
+        return shortest_path;
+    }
+
+    int n = graph.get_number_of_nodes();
+    std::vector<int> dist(n, 1e9);
+    std::vector<int> pre(n, -1); // 経路として見たとき一個前の頂点
+    std::queue<int> que;
+    que.push(sketch_node);
+    dist[sketch_node] = 0;
+
+    int target = 0; // Si に属する頂点のうち, sketch_node から一番近いもの
+
+    while (!que.empty()) {
+        // 現在頂点
+        int from = que.front();
+        que.pop();
+
+        // Si に属する頂点に辿り着いたかどうか
+        bool find_Si = false;
+
+        for (const int& to : graph.get_adjacency_list().at(from)) { // from の隣接頂点を見ていく
+            if (dist[to] != 1e9) continue;
+            dist[to] = dist[from] + 1;
+            pre[to] = from;
+
+            if (seed_nodes.count(to)) { // to が Si に属するならそこで終了
+                target = to;
+                find_Si = true;
+                break;
+            } 
+
+            que.push(to);
+        }
+
+        if (find_Si) break;
+    }
+
+    // target から巻き戻し, 最短経路を構築
+    for (int i = target; i != -1; i = pre[i]) {
+        shortest_path.push_back(i);
+    }
+    reverse( shortest_path.begin(), shortest_path.end() );
+
+    return shortest_path;
+}
+
+
 /* sketch 生成 */
 vector<vector<int> > sketch_index(
-    Graph& graph,
+    const Graph& graph,
     int sketch_node,
-    const vector<vector<int> >& seed_node_sets)
+    const vector<unordered_set<int> >& seed_node_sets)
 {
     vector<vector<int> > sketch; // sketch_node の sketch : [S1との最短経路, S2との最短経路, ..., Smとの最短経路]
     vector<int> shortest_path;
 
     /* sketch_node と Si の最短経路を探す */
     for (int i = 0; i < seed_node_sets.size(); ++i) {
-        sketch.push_back(graph.bfs(sketch_node, seed_node_sets[i]));
+        sketch.push_back(bfs_to_seed_node(graph, sketch_node, seed_node_sets[i]));
     }
 
 

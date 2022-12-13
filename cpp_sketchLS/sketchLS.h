@@ -3,13 +3,19 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 class Graph;
 
 std::vector<std::vector<int> > sketch_index(
     const Graph& graph,
     int sketch_node,
-    const std::vector<std::vector<int> >& seed_node_sets);
+    const std::vector<std::unordered_set<int> >& seed_node_sets);
+
+std::vector<int> bfs_to_seed_node(
+    const Graph& graph,
+    int sketch_node,
+    const std::unordered_set<int>& seed_node_set);
 
 std::vector<int> bfs_sketch(
     int sketch_node,
