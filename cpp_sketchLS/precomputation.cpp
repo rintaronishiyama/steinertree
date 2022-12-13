@@ -27,30 +27,36 @@ int main(int argc, char* argv[])
 {
     /* グラフ読み込み */
     Graph graph;
-    string dataset_path = "../dataset/large-facebook.txt";
+    string dataset_path = "../dataset/ego-facebook.txt";
     read_graph_from_txt_file(dataset_path, graph);
-    
+    cout << "Complete reading graph" << endl;
     // 連結かどうか確認
     if ( !graph.is_connected() ) {
         cout << "This graph is not connected" << endl;
         return 1;
     }
 
+
     /* シードノード集合の決定 */
     vector<vector<int> > seed_node_sets = decide_seed_node_sets(graph);
-    cout << "ok" << endl;
+    cout << "Complete deciding seed node sets" << endl;
+
+
     /* 次数の降順にソートしたノードのリストを用意 */
     vector<int> node_list_sort_by_degree = graph.get_node_list_sorted_by_degree();
-    cout << "ok" << endl;
+    cout << "Complete sorting by degree" << endl;
+    
+    
     /* 次数の降順に sketch 生成 */
     unordered_map<int, vector <vector<int> > > sketches;
+    #pragma omp parallel for
     for (const int& node : node_list_sort_by_degree) {
         sketches[node] = ( sketch_index(graph, node, seed_node_sets) );
         cout << "Sketch " << node << " done" << endl;
     }
     
     /* sketches 保存 */
-    string write_file_path = "/large-facebook/sketches.txt";
+    string write_file_path = "sketches.txt";
     write_sketches(write_file_path, sketches);
 
     return 0;

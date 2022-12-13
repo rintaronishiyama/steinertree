@@ -26,9 +26,6 @@ void read_graph_from_txt_file(string file_path, Graph& graph) {
         vector<string> str_list = split(line, ' ');
         int n1 = stoi(str_list[0]);
         int n2 = stoi(str_list[1]);
-        if (n1 == n2) {
-            cout << n1 << " = " << n2 << endl;
-        }
         graph.add_edge(n1, n2);
     }
 }
