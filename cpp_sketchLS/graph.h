@@ -23,6 +23,7 @@ class Graph{
 
         // グラフの分析
         std::vector<int> find_shortest_path(int n1, int n2) const;
+        std::vector<int> bfs(int sketch_node, const std::vector<int>& seed_node_set) const;
         bool is_connected() const;
         bool has_cycle() const;
         bool dfs(

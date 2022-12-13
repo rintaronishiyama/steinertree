@@ -50,9 +50,9 @@ int main(int argc, char* argv[])
     /* 次数の降順に sketch 生成 */
     unordered_map<int, vector <vector<int> > > sketches;
     #pragma omp parallel for
-    for (const int& node : node_list_sort_by_degree) {
-        sketches[node] = ( sketch_index(graph, node, seed_node_sets) );
-        cout << "Sketch " << node << " done" << endl;
+    for (int i = 0; i < node_list_sort_by_degree.size(); ++i) {
+        sketches[node_list_sort_by_degree[i]] = ( sketch_index(graph, node_list_sort_by_degree[i], seed_node_sets) );
+        cout << "Sketch " << node_list_sort_by_degree[i] << " done" << endl;
     }
     
     /* sketches 保存 */

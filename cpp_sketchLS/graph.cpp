@@ -1,5 +1,6 @@
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>      // std::pair
 #include <algorithm>    // std::find, std::reverse, std::sort
 #include <queue>        // std::priority_queue
@@ -187,6 +188,90 @@ std::vector<int> Graph::find_shortest_path(int source, int target) const {
 
     return shortest_path;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// takishi 追加
+// sketch_node と Si の最短経路を返す
+// 引数 : sketch_node, 集合 Si
+// 返り値 : sketch_node と Si の最短経路
+std::vector<int> Graph::bfs(int sketch_node, const std::vector<int>& seed_node_set) const {
+    // seed_node_set を unordered_set に
+    std::unordered_set<int> seed_nodes;
+    for (int seed : seed_node_set) seed_nodes.insert(seed);
+
+    vector<int> shortest_path;
+    if (seed_nodes.count(sketch_node)) { // sketch_node が Si に含まれているとき
+        shortest_path.push_back(sketch_node);
+        return shortest_path;
+    }
+
+    int n = get_number_of_nodes();
+    std::vector<int> dist(n, INF);
+    std::vector<int> pre(n, -1); // 経路として見たとき一個前の頂点
+    std::queue<int> que;
+    que.push(sketch_node);
+    dist[sketch_node] = 0;
+
+    int target = 0; // Si に属する頂点のうち, sketch_node から一番近いもの
+
+    while (!que.empty()) {
+        // 現在頂点
+        int from = que.front();
+        que.pop();
+
+        // Si に属する頂点に辿り着いたかどうか
+        bool find_Si = false;
+
+        for (const int& to : adjacency_list.at(from)) { // from の隣接頂点を見ていく
+            if (dist[to] != INF) continue;
+            dist[to] = dist[from] + 1;
+            pre[to] = from;
+
+            if (seed_nodes.count(to)) { // to が Si に属するならそこで終了
+                target = to;
+                find_Si = true;
+                break;
+            } 
+
+            que.push(to);
+        }
+
+        if (find_Si) break;
+    }
+
+    // target から巻き戻し, 最短経路を構築
+    for (int i = target; ; target = pre[target]) {
+        shortest_path.push_back(i);
+    }
+    reverse( shortest_path.begin(), shortest_path.end() );
+
+    return shortest_path;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // 連結であるか確認. 連結なら true そうでなければ false
 bool Graph::is_connected() const {

@@ -37,6 +37,11 @@ int main(int argc, char* argv[])
     /* ターミナルの決定 */
     int size_of_terminals = 5;
     vector<int> terminals = decide_terminals(graph, size_of_terminals);
+    cout << "terminals" << endl;
+    for (int terminal : terminals) {
+        cout << terminal << endl;
+    }
+
 
     /* sketchLS 実行 */
     Graph steiner_tree = sketchLS(graph, terminals, sketches);

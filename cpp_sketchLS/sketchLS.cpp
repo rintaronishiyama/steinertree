@@ -40,7 +40,7 @@ vector<int> concatenate_path(
 
 /* sketch 生成 */
 vector<vector<int> > sketch_index(
-    const Graph& graph,
+    Graph& graph,
     int sketch_node,
     const vector<vector<int> >& seed_node_sets)
 {
@@ -49,22 +49,7 @@ vector<vector<int> > sketch_index(
 
     /* sketch_node と Si の最短経路を探す */
     for (int i = 0; i < seed_node_sets.size(); ++i) {
-        for (int j = 0; j < seed_node_sets[i].size(); ++j) {
-            vector<int> tmp_path 
-                = graph.find_shortest_path(sketch_node, seed_node_sets[i][j]);
-            if (tmp_path.size() == 1) { // 最短経路の長さが 1 のときは即break;
-                shortest_path = tmp_path;
-                break;
-            }
-            if (j == 0) { // 1 つ目のノードはそのまま暫定最短経路
-                shortest_path = tmp_path;
-                continue;
-            }
-            if ( shortest_path.size() > tmp_path.size() ) {
-                shortest_path = tmp_path;
-            }
-        }
-        sketch.push_back(shortest_path);
+        sketch.push_back(graph.bfs(sketch_node, seed_node_sets[i]));
     }
 
 
