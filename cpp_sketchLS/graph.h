@@ -32,6 +32,7 @@ class Graph{
             int source,
             std::vector<int>& visited_nodes,
             std::vector<int>& unvisited_nodes) const;
+        int diameter(const std::vector<int>& nodes) const;
 
 };
 

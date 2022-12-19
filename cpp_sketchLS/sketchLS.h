@@ -29,6 +29,11 @@ Graph sketchLS(
     std::vector<int> terminals,
     const std::unordered_map<int, std::vector<std::vector<int> > >& sketches);
 
+Graph partial_sketchLS(
+    const Graph& graph,
+    std::vector<int> terminals,
+    const std::unordered_map<int, std::vector<std::vector<int> > >& sketches);
+
 
 /* 下位関数 */
 std::vector<int> get_path_from_sketch(

@@ -58,12 +58,8 @@ std::vector<int> bfs_to_seed_node(
     int sketch_node,
     const unordered_set<int>& seed_node_set)
 {
-    // seed_node_set を unordered_set に
-    std::unordered_set<int> seed_nodes;
-    for (int seed : seed_node_set) seed_nodes.insert(seed);
-
     vector<int> shortest_path;
-    if (seed_nodes.count(sketch_node)) { // sketch_node が Si に含まれているとき
+    if (seed_node_set.count(sketch_node)) { // sketch_node が Si に含まれているとき
         shortest_path.push_back(sketch_node);
         return shortest_path;
     }
@@ -90,7 +86,7 @@ std::vector<int> bfs_to_seed_node(
             dist[to] = dist[from] + 1;
             pre[to] = from;
 
-            if (seed_nodes.count(to)) { // to が Si に属するならそこで終了
+            if (seed_node_set.count(to)) { // to が Si に属するならそこで終了
                 target = to;
                 find_Si = true;
                 break;
@@ -192,10 +188,10 @@ Graph sketchLS(
     }
 
     // debug
-    for (const pair<int, vector<int> >& item : BFS_of_terminals) {
-        cout << item.first << " : ";
-        print_vector(item.second);
-    }
+    // for (const pair<int, vector<int> >& item : BFS_of_terminals) {
+    //     cout << item.first << " : ";
+    //     print_vector(item.second);
+    // }
 
     unordered_map<int, vector<int> > visited_nodes_of_terminals; // ターミナル毎の訪問したノード
     vector<int> set_of_covered_terminals;                        // カバーしたターミナル
@@ -245,14 +241,14 @@ Graph sketchLS(
                         vector<int> tmp_path = concatenate_path(path_from_searching_terminal, path_to_other_terminal);
 
                         // debug
-                        cout << "tmp_path : ";
-                        print_vector(tmp_path);
+                        // cout << "tmp_path : ";
+                        // print_vector(tmp_path);
 
                         /* tmp_path 自身が閉路を持つか確認 */
                         if ( has_cycle_for_path(tmp_path) ) {
 
-                            // debug
-                            cout << "tmp_path has cycle" << endl;
+                            // // debug
+                            // cout << "tmp_path has cycle" << endl;
 
                             continue;
                         }
@@ -262,14 +258,14 @@ Graph sketchLS(
                         Tcopy.add_path(tmp_path);
                         if ( Tcopy.has_cycle() ) {
 
-                            // debug
-                            cout << "tmp_path make cycle" << endl;
+                            // // debug
+                            // cout << "tmp_path make cycle" << endl;
 
                             continue;
                         }
 
                         // debug
-                        cout << "tmp_path doesnt make cycle" << endl;
+                        // cout << "tmp_path doesnt make cycle" << endl;
 
                         /* path の追加と set_of_covered_terminals への追加 */
                         T.add_path(tmp_path);
@@ -286,14 +282,60 @@ Graph sketchLS(
                         }
 
                         // debug
-                        cout << "set_of_covered_terminals : ";
-                        print_vector(set_of_covered_terminals);
-                        cout << "Is T connected ? " << (T.is_connected() ? "True" : "False") << endl;
+                        // cout << "set_of_covered_terminals : ";
+                        // print_vector(set_of_covered_terminals);
+                        // cout << "Is T connected ? " << (T.is_connected() ? "True" : "False") << endl;
                     }
                 }  
             }
         }
     }
+}
+
+
+// partial_sketches に対する sketchLS
+Graph partial_sketchLS(
+    const Graph& graph,
+    vector<int> terminals,
+    const unordered_map<int, vector<vector<int> > >& partial_sketches)
+{
+    // sketch を持つノードの集合を作成
+    unordered_set<int> nodes_having_sketch;
+    for (const pair<int, vector<vector<int> > >& item : partial_sketches) {
+        nodes_having_sketch.insert(item.first);
+    }
+
+    // sketch を持たないターミナルの置き換え
+    vector<pair<pair<int, int>, vector<int> > > pair_of_terminals_and_shortest_path; // <<置き換え前ノード, 置き換え後ノード>, 2 つの最短経路>
+    vector<int> alternative_terminals;
+    unordered_map<int, vector<vector<int> > > alternative_sketches;
+    for (int terminal : terminals) {
+        if (nodes_having_sketch.count(terminal) != 0) { // sketch を持つならそのまま
+            if (find(alternative_terminals.begin(), alternative_terminals.end(), terminal) == alternative_terminals.end()) {
+                alternative_terminals.push_back(terminal);
+                alternative_sketches[terminal] = partial_sketches.at(terminal);
+            }
+        } else { 
+            // 近傍のsketchを持つノードを探索し置き換え
+            vector<int> shortest_path = bfs_to_seed_node(graph, terminal, nodes_having_sketch); // ToDo : 関数名を変える
+            int alternative_node = shortest_path.back();
+            pair_of_terminals_and_shortest_path.push_back({ {terminal, alternative_node}, shortest_path } );
+            if (find(alternative_terminals.begin(), alternative_terminals.end(), alternative_node) == alternative_terminals.end()) {
+                alternative_terminals.push_back(alternative_node);
+                alternative_sketches[alternative_node] = partial_sketches.at(alternative_node);
+            }
+        }
+    }
+
+    // 置き換え後のターミナルに対して sketchLS
+    Graph SteinerTree = sketchLS(graph, alternative_terminals, alternative_sketches);
+
+    // 置き換え前後の最短経路を追加
+    for (const pair<pair<int, int>, vector<int> >& item : pair_of_terminals_and_shortest_path) {
+        SteinerTree.add_path(item.second);
+    }
+
+    return SteinerTree;
 }
 
 

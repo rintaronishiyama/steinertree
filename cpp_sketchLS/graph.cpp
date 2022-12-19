@@ -273,3 +273,8 @@ bool Graph::dfs(int source, vector<int>& visited_nodes, vector<int>& unvisited_n
 
     return false;
 }
+
+
+int Graph::diameter(const std::vector<int>& nodes) const {
+    
+}
