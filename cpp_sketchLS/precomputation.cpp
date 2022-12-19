@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <iostream>
+#include <filesystem>
 #include "graph.h"
 #include "read.h"
 #include "sketchLS.h"
@@ -20,19 +21,50 @@ using std::back_inserter;
 using std::string;
 using std::unordered_map;
 using std::unordered_set;
+using std::cin;
 using std::cout;
 using std::endl;
 
+
+namespace fs = std::filesystem;
+
 int main(int argc, char* argv[])
 {
+    /* グラフの選択 */
+    string graph_name;
+    cout << "Enter graph name : ";
+    cin >> graph_name;
+
+
+    /* グラフのデータセットがあるか確認 */
+    string dataset_path = "../dataset/" + graph_name + ".txt";
+    if ( !fs::is_regular_file(dataset_path) ) { // なければ異常終了
+        cout << "There is no such dataset" << endl;
+        return 1;
+    }
+
+
     /* グラフ読み込み */
     Graph graph;
-    string dataset_path = "../dataset/ego-facebook.txt";
     read_graph_from_txt_file(dataset_path, graph);
     cout << "Complete reading graph" << endl;
     // 連結かどうか確認
     if ( !graph.is_connected() ) {
         cout << "This graph is not connected" << endl;
+        return 1;
+    }
+
+
+    /* グラフの情報を表示 */
+    cout << "This graph has " << graph.get_number_of_nodes()
+        << " nodes and " << graph.get_number_of_edges() << "edges" << endl;
+
+
+    /* sketches が生成済みか確認 */
+    string result_dir_path =  "./" + graph_name;
+    string sketches_path = result_dir_path + "/sketches.txt";
+    if ( fs::is_regular_file(sketches_path) ) {
+        cout << "There is already sketches.txt" << endl;
         return 1;
     }
 
@@ -56,8 +88,9 @@ int main(int argc, char* argv[])
     }
     
     /* sketches 保存 */
-    string write_file_path = "sketches.txt";
-    write_sketches(write_file_path, sketches);
+    fs::create_directories(result_dir_path);
+    string write_sketches_path = result_dir_path + "/sketches.txt";
+    write_sketches(write_sketches_path, sketches);
 
     return 0;
 }

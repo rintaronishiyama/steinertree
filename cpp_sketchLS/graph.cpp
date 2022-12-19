@@ -41,7 +41,7 @@ const std::unordered_map<int, std::vector<int> >& Graph::get_adjacency_list() co
 }
 
 int Graph::get_number_of_nodes() const{
-    return this->node_list.size();
+    return this->number_of_nodes;
 }
 
 int Graph::get_number_of_edges() const{
@@ -95,9 +95,11 @@ void Graph::add_edge(int n1, int n2){
     // node_list になければ追加
     if (find(this->node_list.begin(), this->node_list.end(), n1) == this->node_list.end()) {
         this->node_list.push_back(n1);
+        ++this->number_of_nodes;
     }
     if (find(this->node_list.begin(), this->node_list.end(), n2) == this->node_list.end()) {
         this->node_list.push_back(n2);
+        ++this->number_of_nodes;
     }
 }
 
@@ -120,10 +122,12 @@ void Graph::delete_edge(int n1, int n2) {
     if ( dic[n1].empty() ) {
         dic.erase(n1);
         this->node_list.erase(find(this->node_list.begin(), this->node_list.end(), n1));
+        --this->number_of_nodes;
     }
     if ( dic[n2].empty() ) {
         dic.erase(n2);
         this->node_list.erase(find(this->node_list.begin(), this->node_list.end(), n1));
+        --this->number_of_nodes;
     }
 }
 

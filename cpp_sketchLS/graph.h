@@ -8,6 +8,7 @@
 class Graph{
     private :
         std::vector<int> node_list;
+        int number_of_nodes = 0;
         std::unordered_map<int, std::vector<int> > adjacency_list; // ノードid -> 隣接ノードのvector
 
     public :
