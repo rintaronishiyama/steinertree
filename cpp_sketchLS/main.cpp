@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
     vector<pair<int, double> > diameter_and_number_of_unique_node;  // ターミナルの直径とユニークなノード数
 
     // 1000 回実行
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 100; ++i) {
         /* ターミナルの決定 */
         int size_of_terminals = 5;
         vector<int> terminals = decide_terminals(graph, size_of_terminals);
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
 
     /* 平均化 */
     for (double& overlap_ratio : overlap_ratio_list) {
-        overlap_ratio /= 1000;
+        overlap_ratio /= 100;
     }
 
 
