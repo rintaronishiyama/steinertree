@@ -1,5 +1,5 @@
 #include <vector>
-#include <algorithm> // std::max, std::find, std::reverse
+#include <algorithm> // std::max, std::find, std::reverse, std::count
 #include <iostream>
 #include <unordered_map>
 #include <unordered_set>
@@ -17,6 +17,9 @@ using std::reverse;
 using std::cout;
 using std::endl;
 using std::queue;
+using std::count;
+
+
 
 // debug
 void print_vector(const vector<int>& vec) {
@@ -42,7 +45,10 @@ vector<int> concatenate_path(
     vector<int> path_to_be_added,
     const vector<int>& path_to_add);
 
+bool has_cycle_for_path(const vector<int>& path);
 
+
+/* 事前計算 */
 // takishi 追加
 // sketch_node と Si の最短経路を返す
 // 引数 : sketch_node, 集合 Si
@@ -52,12 +58,8 @@ std::vector<int> bfs_to_seed_node(
     int sketch_node,
     const unordered_set<int>& seed_node_set)
 {
-    // seed_node_set を unordered_set に
-    std::unordered_set<int> seed_nodes;
-    for (int seed : seed_node_set) seed_nodes.insert(seed);
-
     vector<int> shortest_path;
-    if (seed_nodes.count(sketch_node)) { // sketch_node が Si に含まれているとき
+    if (seed_node_set.count(sketch_node)) { // sketch_node が Si に含まれているとき
         shortest_path.push_back(sketch_node);
         return shortest_path;
     }
@@ -84,7 +86,7 @@ std::vector<int> bfs_to_seed_node(
             dist[to] = dist[from] + 1;
             pre[to] = from;
 
-            if (seed_nodes.count(to)) { // to が Si に属するならそこで終了
+            if (seed_node_set.count(to)) { // to が Si に属するならそこで終了
                 target = to;
                 find_Si = true;
                 break;
@@ -106,7 +108,7 @@ std::vector<int> bfs_to_seed_node(
 }
 
 
-/* sketch 生成 */
+// sketch 生成
 vector<vector<int> > sketch_index(
     const Graph& graph,
     int sketch_node,
@@ -125,7 +127,8 @@ vector<vector<int> > sketch_index(
 }
 
 
-/* sketch を bfs */
+/* 実行時計算 */
+// sketch を bfs
 vector<int> bfs_sketch(
     int sketch_node,
     const vector<vector<int> >& sketch)
@@ -160,8 +163,7 @@ vector<int> bfs_sketch(
 }
 
 
-/* sketchLS */
-
+// sketchLS
 Graph sketchLS(
     const Graph& graph,
     vector<int> terminals,
@@ -185,7 +187,11 @@ Graph sketchLS(
         }
     }
 
-
+    // debug
+    // for (const pair<int, vector<int> >& item : BFS_of_terminals) {
+    //     cout << item.first << " : ";
+    //     print_vector(item.second);
+    // }
 
     unordered_map<int, vector<int> > visited_nodes_of_terminals; // ターミナル毎の訪問したノード
     vector<int> set_of_covered_terminals;                        // カバーしたターミナル
@@ -234,12 +240,32 @@ Graph sketchLS(
                         
                         vector<int> tmp_path = concatenate_path(path_from_searching_terminal, path_to_other_terminal);
 
-                        /* 閉路ができないか確認 */
+                        // debug
+                        // cout << "tmp_path : ";
+                        // print_vector(tmp_path);
+
+                        /* tmp_path 自身が閉路を持つか確認 */
+                        if ( has_cycle_for_path(tmp_path) ) {
+
+                            // // debug
+                            // cout << "tmp_path has cycle" << endl;
+
+                            continue;
+                        }
+
+                        /* tmp_path の追加で閉路ができないか確認 */
                         Graph Tcopy{T};
                         Tcopy.add_path(tmp_path);
                         if ( Tcopy.has_cycle() ) {
+
+                            // // debug
+                            // cout << "tmp_path make cycle" << endl;
+
                             continue;
                         }
+
+                        // debug
+                        // cout << "tmp_path doesnt make cycle" << endl;
 
                         /* path の追加と set_of_covered_terminals への追加 */
                         T.add_path(tmp_path);
@@ -250,14 +276,66 @@ Graph sketchLS(
                         if ( find(set_of_covered_terminals.begin(), set_of_covered_terminals.end(), other_terminal) == set_of_covered_terminals.end() ) {
                             set_of_covered_terminals.push_back(other_terminal);
                         }
+
+                        if (T.is_connected() && ( set_of_covered_terminals.size() == terminals.size() ) ) {
+                            return T;
+                        }
+
+                        // debug
+                        // cout << "set_of_covered_terminals : ";
+                        // print_vector(set_of_covered_terminals);
+                        // cout << "Is T connected ? " << (T.is_connected() ? "True" : "False") << endl;
                     }
                 }  
             }
         }
     }
-    if (T.is_connected() && ( set_of_covered_terminals.size() == terminals.size() ) ) {
-        return T;
+}
+
+
+// partial_sketches に対する sketchLS
+Graph partial_sketchLS(
+    const Graph& graph,
+    vector<int> terminals,
+    const unordered_map<int, vector<vector<int> > >& partial_sketches)
+{
+    // sketch を持つノードの集合を作成
+    unordered_set<int> nodes_having_sketch;
+    for (const pair<int, vector<vector<int> > >& item : partial_sketches) {
+        nodes_having_sketch.insert(item.first);
     }
+
+    // sketch を持たないターミナルの置き換え
+    vector<pair<pair<int, int>, vector<int> > > pair_of_terminals_and_shortest_path; // <<置き換え前ノード, 置き換え後ノード>, 2 つの最短経路>
+    vector<int> alternative_terminals;
+    unordered_map<int, vector<vector<int> > > alternative_sketches;
+    for (int terminal : terminals) {
+        if (nodes_having_sketch.count(terminal) != 0) { // sketch を持つならそのまま
+            if (find(alternative_terminals.begin(), alternative_terminals.end(), terminal) == alternative_terminals.end()) {
+                alternative_terminals.push_back(terminal);
+                alternative_sketches[terminal] = partial_sketches.at(terminal);
+            }
+        } else { 
+            // 近傍のsketchを持つノードを探索し置き換え
+            vector<int> shortest_path = bfs_to_seed_node(graph, terminal, nodes_having_sketch); // ToDo : 関数名を変える
+            int alternative_node = shortest_path.back();
+            pair_of_terminals_and_shortest_path.push_back({ {terminal, alternative_node}, shortest_path } );
+            if (find(alternative_terminals.begin(), alternative_terminals.end(), alternative_node) == alternative_terminals.end()) {
+                alternative_terminals.push_back(alternative_node);
+                alternative_sketches[alternative_node] = partial_sketches.at(alternative_node);
+            }
+        }
+    }
+
+    // 置き換え後のターミナルに対して sketchLS
+    Graph SteinerTree = sketchLS(graph, alternative_terminals, alternative_sketches);
+
+    // 置き換え前後の最短経路を追加
+    for (const pair<pair<int, int>, vector<int> >& item : pair_of_terminals_and_shortest_path) {
+        SteinerTree.add_path(item.second);
+    }
+
+    return SteinerTree;
 }
 
 
@@ -289,6 +367,7 @@ vector<int> get_path_from_sketch(
     return shortest_path_to_node;
 }
 
+
 // path 同士を結合
 vector<int> concatenate_path(
     vector<int> path_to_be_added,
@@ -301,4 +380,16 @@ vector<int> concatenate_path(
     );
 
     return path_to_be_added;
+}
+
+
+// path 自身が閉路を持つか調べる. 持っていれば true, そうでなければ false
+bool has_cycle_for_path(const vector<int>& path) {
+    for (const int& node : path) {
+        if (count(path.begin(), path.end(), node) > 1) {
+            return true;
+        }
+    }
+
+    return false;
 }
