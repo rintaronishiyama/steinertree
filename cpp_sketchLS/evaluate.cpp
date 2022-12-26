@@ -1,7 +1,9 @@
 #include <vector>
+#include <algorithm> 
 #include "graph.h"
 
 using std::vector;
+using std::find;
 
 double evaluate_overlap_ratio(
     const Graph& ST_for_sketchLS,

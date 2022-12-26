@@ -24,5 +24,11 @@ void write_overlap_ratio(
     const std::vector<double>& overlap_ratio_list
 );
 
+void write_size(
+    std::string file_path,
+    const std::vector<std::pair<double, double> >& sketches_range_list,
+    const std::vector<double>& size
+);
+
 
 #endif // GUARD_WRITE_H

@@ -8,15 +8,27 @@
 class Graph;
 
 /* 事前計算 */
-std::vector<int> bfs_to_seed_node(
+std::vector<int> bfs_to_node_set(
     const Graph& graph,
-    int sketch_node,
-    const std::unordered_set<int>& seed_node_set);
+    int source,
+    const std::unordered_set<int>& node_set);
+
+std::vector<int> bfs_to_node_set_avoiding_another_node_set(
+    const Graph& graph,
+    int source,
+    const std::unordered_set<int>& node_set,
+    const std::unordered_set<int>& node_set_to_avoid);
 
 std::vector<std::vector<int> > sketch_index(
     const Graph& graph,
     int sketch_node,
     const std::vector<std::unordered_set<int> >& seed_node_sets);
+
+std::vector<std::vector<int> > sketch_index_avoiding_bc_top(
+    const Graph& graph,
+    int sketch_node,
+    const std::vector<std::unordered_set<int> >& seed_node_sets,
+    const std::unordered_set<int>& bc_top_nodes);
 
 
 /* 実行時計算 */

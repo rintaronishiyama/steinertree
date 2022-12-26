@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <map>
 #include "graph.h"
 #include "split.h"
 
@@ -13,6 +14,7 @@ using std::cout;
 using std::endl;
 using std::stoi;
 using std::unordered_map;
+using std::map;
 
 void read_graph_from_txt_file(string file_path, Graph& graph) {
     ifstream ifs(file_path);
@@ -63,5 +65,25 @@ void read_sketches_from_txt_file(
             tmp_shortest_path_for_seed_set.push_back( stoi(str) );
         }
         sketches[sketch_node] = tmp_sketch;
+    }
+}
+
+void read_bc_from_txt_file(
+    string file_path,
+    map<int, double>& bc_dict)
+{
+    ifstream ifs(file_path);
+    if (!ifs) {
+        throw "Failed to open file";
+    }
+
+    string line;
+
+    while( getline(ifs, line) ) {
+        vector<string> str_list = split(line, ' ');
+        int node = stoi(str_list[0]);
+        double bc = stod(str_list[1]);
+
+        bc_dict[node] = bc;
     }
 }

@@ -70,3 +70,20 @@ void write_overlap_ratio(
         ofs << " : " << overlap_ratio << endl;
     }
 }
+
+void write_size(
+    string file_path,
+    const vector<pair<double, double> >& sketches_range_list,
+    const vector<double>& ST_size_list
+)
+{
+    ofstream ofs(file_path);
+
+    ofs << "original : " << ST_size_list.at(0) << endl;
+    for (int i = 1; i < sketches_range_list.size(); ++i) {
+        pair range = sketches_range_list.at(i);
+        double size = ST_size_list.at(i + 1);
+        ofs << range.first << " " << range.second;
+        ofs << " : " << size << endl;
+    }
+}

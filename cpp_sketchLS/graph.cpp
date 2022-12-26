@@ -274,7 +274,127 @@ bool Graph::dfs(int source, vector<int>& visited_nodes, vector<int>& unvisited_n
     return false;
 }
 
+// source から node_set 内のいずれかのノードにつくまで BFS
+// source から node_set 内で最も近いノードまでの最短経路を返す
+vector<int> Graph::bfs_to_node_set(
+    int source,
+    const unordered_set<int>& node_set) const
+{
+    vector<int> shortest_path;
+    if (node_set.count(source)) { // source が node_set に含まれているとき
+        shortest_path.push_back(source);
+        return shortest_path;
+    }
 
-int Graph::diameter(const std::vector<int>& nodes) const {
-    
+    int n = this->get_number_of_nodes();
+    vector<int> dist(n, 1e9);
+    vector<int> pre(n, -1); // 経路として見たとき一つ前の頂点
+    queue<int> que;
+    que.push(source);
+    dist[source] = 0;
+
+    int target = -1; // node_set に属する頂点のうち, source から一番近いもの
+
+    while (!que.empty()) {
+        // 現在頂点
+        int from = que.front();
+        que.pop();
+
+        // node_set に属する頂点に辿り着いたかどうか
+        bool find_node_set = false;
+
+        for (const int& to : this->get_adjacency_list().at(from)) { // from の隣接頂点を見ていく
+            if (dist[to] != 1e9) continue; // 訪問済みなら飛ばす
+
+            dist[to] = dist[from] + 1;     // 現在頂点から+1した距離を記録
+            pre[to] = from;                // 現在頂点を1つ前の頂点として記録
+
+            if (node_set.count(to)) {      // to が node_set に属するならそこで終了
+                target = to;
+                find_node_set = true;
+                break;
+            } 
+
+            que.push(to);
+        }
+
+        if (find_node_set) break;
+    }
+
+    if (target == -1) {
+        throw "cant find target in bfs";
+    }
+
+    // target から巻き戻し, 最短経路を構築
+    for (int i = target; i != -1; i = pre[i]) {
+        shortest_path.push_back(i);
+    }
+    reverse( shortest_path.begin(), shortest_path.end() );
+
+    return shortest_path;
+}
+
+
+// source から node_set 内のいずれかのノードにつくまで BFS
+// node_set_to_avoid 内のいずれかのノードにヒットしたら飛ばす
+// source から node_set 内で最も近いノードまでの
+// node_set_to_avoid を避けた最短経路を返す
+std::vector<int> Graph::bfs_to_node_set_avoiding_another_node_set (
+    int source,
+    const unordered_set<int>& node_set,
+    const unordered_set<int>& node_set_to_avoid) const
+{
+    vector<int> shortest_path;
+    if (node_set.count(source)) { // source が node_set に含まれているとき
+        shortest_path.push_back(source);
+        return shortest_path;
+    }
+
+    int n = this->get_number_of_nodes();
+    vector<int> dist(n, 1e9);
+    vector<int> pre(n, -1); // 経路として見たとき一つ前の頂点
+    queue<int> que;
+    que.push(source);
+    dist[source] = 0;
+
+    int target = -1; // node_set に属する頂点のうち, source から一番近いもの
+
+    while (!que.empty()) {
+        // 現在頂点
+        int from = que.front();
+        que.pop();
+
+        // node_set に属する頂点に辿り着いたかどうか
+        bool find_node_set = false;
+
+        for (const int& to : this->get_adjacency_list().at(from)) { // from の隣接頂点を見ていく
+            if (dist[to] != 1e9) continue;                                           // 訪問済みなら飛ばす
+            if ( (node_set_to_avoid.count(to)) && !(node_set.count(to)) ) continue;  // 避けるノード集合にあり, 目的のノード集合になければ飛ばす
+
+            dist[to] = dist[from] + 1;     // 現在頂点から+1した距離を記録
+            pre[to] = from;                // 現在頂点を1つ前の頂点として記録
+
+            if (node_set.count(to)) {      // to が node_set に属するならそこで終了
+                target = to;
+                find_node_set = true;
+                break;
+            } 
+
+            que.push(to);
+        }
+
+        if (find_node_set) break;
+    }
+
+    if (target == -1) { // targetが見つからなければもとのbfs
+        return bfs_to_node_set(source, node_set);
+    }
+
+    // target から巻き戻し, 最短経路を構築
+    for (int i = target; i != -1; i = pre[i]) {
+        shortest_path.push_back(i);
+    }
+    reverse( shortest_path.begin(), shortest_path.end() );
+
+    return shortest_path;
 }

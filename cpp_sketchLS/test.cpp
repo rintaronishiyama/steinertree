@@ -3,17 +3,18 @@
 #include <string>
 #include <fstream>
 #include <filesystem>
+#include <unordered_set>
 
 using namespace std;
 
-namespace fs = std::filesystem;
 
 int main(int argc, char* argv[])
 {
-    fs::create_directories("./data");
-    ofstream ofs("./data/data.txt");
-    ofs << "aa" << endl;
-    fs::create_directories("./data");
-    ofstream ofs2("./data/data.txt");
-    ofs2 << "bb" << endl;
+    unordered_set<int> test;
+    test.insert(1);
+    if (!(test.count(0))) {
+        cout << "work" << endl;
+    } else {
+        cout << "not work" << endl;
+    }
 }

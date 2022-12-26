@@ -32,8 +32,13 @@ class Graph{
             int source,
             std::vector<int>& visited_nodes,
             std::vector<int>& unvisited_nodes) const;
-        int diameter(const std::vector<int>& nodes) const;
-
+        std::vector<int> bfs_to_node_set(
+            int source,
+            const std::unordered_set<int>& node_set) const;
+        std::vector<int> bfs_to_node_set_avoiding_another_node_set(
+            int source,
+            const std::unordered_set<int>& node_set,
+            const std::unordered_set<int>& node_set_to_avoid) const;
 };
 
 #endif // GUARD_GRAPH_H

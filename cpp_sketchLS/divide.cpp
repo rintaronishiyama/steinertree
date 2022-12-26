@@ -8,6 +8,7 @@ using std::ceil;
 using std::unordered_map;
 using std::pair;
 
+/* ノードリストを分割 */
 vector<vector<int> > divide_node_list_by_length_to_divide(
     const std::vector<int>& node_list,
     double length_to_divide)
@@ -25,6 +26,7 @@ vector<vector<int> > divide_node_list_by_length_to_divide(
     return devided_list_of_node_list;
 }
 
+/* sketches を分割されたノードリストに合わせて分割 */
 vector<unordered_map<int, vector<vector<int> > > > divide_sketches_by_length_to_divide(
     const unordered_map<int, vector<vector<int> > >& sketches,
     double length_to_divide,
