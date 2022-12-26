@@ -19,15 +19,12 @@ for line in lines :
 """ BCを演算 """
 BC_dict = nx.betweenness_centrality(G)
 
+""" 降順にソート """
+BC_dict = sorted(BC_dict.items(), key = lambda BC : BC[1], reverse=True)
+
 """ BCを記録 """
 result_path = dataset_name + "/BC.txt"
 f = open(result_path, 'w')
 for node, bc in BC_dict.items() :
     f.write(str(node) + " " + str(bc) + "\n")
 f.close()
-
-""" BCの分布図作成 """
-plt.hist( list( BC_dict.values() ) , 1000)
-figure_path = dataset_name + "/BC_distribution.png"
-plt.savefig(figure_path)
-plt.close()
