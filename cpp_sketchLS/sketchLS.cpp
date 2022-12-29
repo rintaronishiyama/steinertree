@@ -49,6 +49,7 @@ bool has_cycle_for_path(const vector<int>& path);
 
 
 /* 事前計算 */
+
 // sketch 生成
 vector<vector<int> > sketch_index(
     const Graph& graph,
@@ -58,33 +59,55 @@ vector<vector<int> > sketch_index(
     vector<vector<int> > sketch; // sketch_node の sketch : [S1との最短経路, S2との最短経路, ..., Smとの最短経路]
 
     /* sketch_node と Si の最短経路を探す */
-    for (int i = 0; i < seed_node_sets.size(); ++i) {
-        sketch.push_back(graph.bfs_to_node_set(sketch_node, seed_node_sets[i]));
+    for (const unordered_set<int>& seed_node_set : seed_node_sets) {
+        sketch.push_back(graph.bfs_to_node_set(sketch_node, seed_node_set));
     }
 
 
     return sketch;
 }
 
-std::vector<std::vector<int> > sketch_index_avoiding_bc_top(
+// extended_sketch 生成 (extended_sketchの詳細は関数内に記載)
+vector<vector<vector<int> > > extended_sketch_index(
     const Graph& graph,
     int sketch_node,
-    const std::vector<std::unordered_set<int> >& seed_node_sets,
-    const std::unordered_set<int>& bc_top_nodes)
+    const vector<unordered_set<int> >& seed_node_sets,
+    const vector<unordered_set<int> >& bc_top_node_sets)
 {
-    vector<vector<int> > sketch; // sketch_node の sketch : [S1との経路, S2との経路, ..., Smとの経路]
+    // sketch_node の sketch : [S1との経路リスト, S2との経路リスト, ..., Smとの経路リスト]
+    // Si との経路リスト : [最短経路(もともとの), bc上位1個を避けた経路, bc上位2個を避けた経路, ..., bc上位128個を避けた経路]
+    // bc上位を避けた経路は生成できない場合があるが, 生成できた経路までを保持
+    // 最低でも最短経路は保持することを保証
+    using Path_List = vector<vector<int> >;
+    vector<Path_List> extended_sketch;
 
-    /* sketch_node と Si の経路を探す */
-    for (int i = 0; i < seed_node_sets.size(); ++i) {
-        sketch.push_back(graph.bfs_to_node_set_avoiding_another_node_set(sketch_node, seed_node_sets[i], bc_top_nodes));
+    /* sketch_node と Si の経路リストを取得 */
+    for (const unordered_set<int>& seed_node_set : seed_node_sets) {
+        Path_List path_list;
+
+        // 最短経路追加
+        path_list.push_back(graph.bfs_to_node_set(sketch_node, seed_node_set));
+
+        // 可能な限りbc上位を避けた経路追加
+        for (const unordered_set<int>& bc_top_node_set : bc_top_node_sets) {
+            vector<int> path_avoiding_bc_top_node
+                = graph.bfs_to_node_set_avoiding_another_node_set(sketch_node, seed_node_set, bc_top_node_set);
+            if (path_avoiding_bc_top_node.empty()) {
+                break;
+            }
+            path_list.push_back(path_avoiding_bc_top_node);
+        }
+
+        extended_sketch.push_back(path_list);
     }
 
 
-    return sketch;
+    return extended_sketch;
 }
 
 
 /* 実行時計算 */
+
 // sketch を bfs
 vector<int> bfs_sketch(
     int sketch_node,
@@ -297,6 +320,7 @@ Graph partial_sketchLS(
 
 
 /* 下位関数 */
+
 // sketch から node までの最短経路を取得
 vector<int> get_path_from_sketch(
     const vector<vector<int> >& sketch,

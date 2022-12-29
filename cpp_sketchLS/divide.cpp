@@ -9,7 +9,7 @@ using std::unordered_map;
 using std::pair;
 
 /* ノードリストを分割 */
-vector<vector<int> > divide_node_list_by_length_to_divide(
+vector<vector<int> > divide_node_list(
     const std::vector<int>& node_list,
     double length_to_divide)
 {
@@ -27,12 +27,12 @@ vector<vector<int> > divide_node_list_by_length_to_divide(
 }
 
 /* sketches を分割されたノードリストに合わせて分割 */
-vector<unordered_map<int, vector<vector<int> > > > divide_sketches_by_length_to_divide(
+vector<unordered_map<int, vector<vector<int> > > > divide_sketches(
     const unordered_map<int, vector<vector<int> > >& sketches,
     double length_to_divide,
     const vector<int>& node_list_sorted_by_degree)
 {
-    vector<vector<int> > divided_list_of_node_list = divide_node_list_by_length_to_divide(node_list_sorted_by_degree, length_to_divide);
+    vector<vector<int> > divided_list_of_node_list = divide_node_list(node_list_sorted_by_degree, length_to_divide);
     vector<unordered_map<int, vector<vector<int> > > > divided_list_of_sketches;
     for (const vector<int>& node_list : divided_list_of_node_list) {
         unordered_map<int, vector<vector<int> > > tmp_sketches;

@@ -20,7 +20,7 @@ for line in lines :
 BC_dict = nx.betweenness_centrality(G)
 
 """ 降順にソート """
-BC_dict = sorted(BC_dict.items(), key = lambda BC : BC[1], reverse=True)
+BC_dict = dict( sorted(BC_dict.items(), key = lambda BC : BC[1], reverse=True) )
 
 """ BCを記録 """
 result_path = dataset_name + "/BC.txt"

@@ -3,18 +3,23 @@
 #include <string>
 #include <fstream>
 #include <filesystem>
+#include <utility>
 #include <unordered_set>
+#include <unordered_map>
+#include <map>
 
 using namespace std;
 
 
 int main(int argc, char* argv[])
 {
-    unordered_set<int> test;
-    test.insert(1);
-    if (!(test.count(0))) {
-        cout << "work" << endl;
-    } else {
-        cout << "not work" << endl;
+    if (0) {
+        cout << "0" << endl;
+    }
+    if (1) {
+        cout << "1" << endl;
+    }
+    if (304040204) {
+        cout << "3402040" << endl;
     }
 }

@@ -16,6 +16,7 @@ using std::stoi;
 using std::unordered_map;
 using std::map;
 
+// 指定したファイルからグラフを読み込み
 void read_graph_from_txt_file(string file_path, Graph& graph) {
     ifstream ifs(file_path);
     if (!ifs) {
@@ -70,7 +71,7 @@ void read_sketches_from_txt_file(
 
 void read_bc_from_txt_file(
     string file_path,
-    map<int, double>& bc_dict)
+    vector<int>& node_list_sorted_by_bc)
 {
     ifstream ifs(file_path);
     if (!ifs) {
@@ -82,8 +83,6 @@ void read_bc_from_txt_file(
     while( getline(ifs, line) ) {
         vector<string> str_list = split(line, ' ');
         int node = stoi(str_list[0]);
-        double bc = stod(str_list[1]);
-
-        bc_dict[node] = bc;
+        node_list_sorted_by_bc.push_back(node);
     }
 }

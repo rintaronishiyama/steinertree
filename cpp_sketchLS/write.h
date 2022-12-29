@@ -12,6 +12,14 @@ void write_sketches(
     std::string file_path,
     const std::unordered_map<int, std::vector<std::vector<int> > >& sketches);
 
+void write_extended_sketches(
+    std::string file_path,
+    const std::unordered_map<int, std::vector<std::vector<std::vector<int> > > >& extended_sketches);
+
+void write_terminals(
+    std::string file_path,
+    const std::vector<std::vector<int> >& list_of_terminals);
+
 void write_graph(std::string file_path, const Graph& graph);
 
 void write_precomputation_time(
@@ -24,7 +32,7 @@ void write_overlap_ratio(
     const std::vector<double>& overlap_ratio_list
 );
 
-void write_size(
+void write_ST_size(
     std::string file_path,
     const std::vector<std::pair<double, double> >& sketches_range_list,
     const std::vector<double>& size

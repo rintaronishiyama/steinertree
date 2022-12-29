@@ -10,12 +10,11 @@
 #include "random.h"
 #include "sketchLS.h"
 #include "write.h"
-#include "output.h"
 #include "divide.h"
 #include "evaluate.h"
 
 // Files to compile
-// main.cpp graph.cpp read.cpp split.cpp sketchLS.cpp write.cpp random.cpp output.cpp divide.cpp evaluate.cpp
+// main.cpp graph.cpp read.cpp split.cpp sketchLS.cpp write.cpp random.cpp divide.cpp evaluate.cpp
 
 using std::string;
 using std::vector;
@@ -113,7 +112,7 @@ int main(int argc, char* argv[])
     }
 
     vector<int> node_list_sorted_by_degree = graph.get_node_list_sorted_by_degree();
-    vector<Sketches> partial_sketches_list = divide_sketches_by_length_to_divide(sketches, length_to_divide, node_list_sorted_by_degree);
+    vector<Sketches> partial_sketches_list = divide_sketches(sketches, length_to_divide, node_list_sorted_by_degree);
 
     vector<double> overlap_ratio_list(sketches_range_list.size(), 0);  // もとの sketchLS のターミナルを除くノード以外をどれだけ含むか
     vector<double> ST_size_list(21, 0);
@@ -123,8 +122,6 @@ int main(int argc, char* argv[])
         /* ターミナルの決定 */
         int size_of_terminals = 5;
         vector<int> terminals = decide_terminals(graph, size_of_terminals);
-        cout << "Complete deciding terminals" << endl;
-        output_terminals(terminals);
 
 
         /* sketchLS 実行 */
@@ -140,14 +137,14 @@ int main(int argc, char* argv[])
 
 
         /* overlap ratio 評価 */
-        for (int i = 0; i < steiner_trees_of_partial_sketchLS.size(); ++i) {
-            overlap_ratio_list[i] += evaluate_overlap_ratio(steiner_tree_of_sketchLS, steiner_trees_of_partial_sketchLS[i], terminals);
+        for (int j = 0; j < steiner_trees_of_partial_sketchLS.size(); ++j) {
+            overlap_ratio_list[j] += evaluate_overlap_ratio(steiner_tree_of_sketchLS, steiner_trees_of_partial_sketchLS[i], terminals);
         }
 
         /* サイズ記録 */
         ST_size_list[0] += steiner_tree_of_sketchLS.get_number_of_edges();
-        for (int i = 0; i < steiner_trees_of_partial_sketchLS.size(); ++i) {
-            ST_size_list[i + 1] += steiner_trees_of_partial_sketchLS[i].get_number_of_edges();
+        for (int j = 0; j < steiner_trees_of_partial_sketchLS.size(); ++j) {
+            ST_size_list[j + 1] += steiner_trees_of_partial_sketchLS[j].get_number_of_edges();
         }
     }
 
@@ -163,16 +160,16 @@ int main(int argc, char* argv[])
 
     /* 評価を保存 */
     string overlap_ratio_path;
-    string size_path;
+    string ST_size_path;
     if (sketches_mode == "normal") {
         overlap_ratio_path = result_dir_path + "/overlap_ratio.txt";
-        size_path = result_dir_path + "/size.txt";
+        ST_size_path = result_dir_path + "/size.txt";
     } else if (sketches_mode == "avoid_BC_top") {
         overlap_ratio_path = result_dir_path + "/overlap_ratio_avoid" + std::to_string(avoid_bc_top_rate) + "bc.txt";
-        size_path = result_dir_path + "/size_avoid" + std::to_string(avoid_bc_top_rate) + "bc.txt";
+        ST_size_path = result_dir_path + "/size_avoid" + std::to_string(avoid_bc_top_rate) + "bc.txt";
     }
     write_overlap_ratio(overlap_ratio_path, sketches_range_list, overlap_ratio_list);
-    write_size(size_path, sketches_range_list, ST_size_list);
+    write_ST_size(ST_size_path, sketches_range_list, ST_size_list);
 
     return 0;
 }

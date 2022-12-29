@@ -13,11 +13,11 @@ class Graph{
 
     public :
         // getter 関数
-        std::vector<int> get_node_list() const;
+        const std::vector<int>& get_node_list() const;
         const std::unordered_map<int, std::vector<int> >& get_adjacency_list() const;
         int get_number_of_nodes() const;
         int get_number_of_edges() const;
-        std::vector<int> get_node_list_sorted_by_degree();
+        const std::vector<int>& get_node_list_sorted_by_degree();
 
         // グラフの操作
         void add_edge(int n1, int n2);
@@ -25,7 +25,6 @@ class Graph{
         void add_path(const std::vector<int>& path);
 
         // グラフの分析
-        std::vector<int> find_shortest_path(int n1, int n2) const;
         bool is_connected() const;
         bool has_cycle() const;
         bool dfs(
@@ -39,6 +38,7 @@ class Graph{
             int source,
             const std::unordered_set<int>& node_set,
             const std::unordered_set<int>& node_set_to_avoid) const;
+        std::vector<int> find_shortest_path(int source, int target) const;
 };
 
 #endif // GUARD_GRAPH_H

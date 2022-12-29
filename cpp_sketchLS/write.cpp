@@ -31,6 +31,45 @@ void write_sketches(
     }
 }
 
+void write_extended_sketches(
+    string file_path,
+    const unordered_map<int, vector<vector<vector<int> > > >& extended_sketches)
+{
+    ofstream ofs(file_path);
+    for (const pair<int, vector<vector<vector<int> > > >& item : extended_sketches) {
+        ofs << item.first << " : ";
+        for (const vector<vector<int> >& path_list_for_seed_set : item.second) {
+            for (const vector<int>& path : path_list_for_seed_set) {
+                for (const int& node : path) {
+                    ofs << node << " ";
+                }
+
+                ofs << "N ";    // ノードの意
+            }
+
+            ofs << "P ";        // パスの意
+        }
+
+        ofs << "end" << endl;   // 行末の意
+    }
+}
+
+void write_terminals(
+    string file_path,
+    const vector<vector<int> >& list_of_terminals)
+{
+    ofstream ofs(file_path);
+    for (const vector<int>& terminals : list_of_terminals) {
+        for (const int& terminal : terminals) {
+            if (terminal == terminals.back()) {
+                ofs << terminal << endl;
+                break;
+            }
+            ofs << terminal << " ";
+        }
+    }
+}
+
 void write_graph(string file_path, const Graph& graph) {
     ofstream ofs(file_path);
     for (const pair<int, vector<int> >& item : graph.get_adjacency_list() ) {
@@ -71,7 +110,7 @@ void write_overlap_ratio(
     }
 }
 
-void write_size(
+void write_ST_size(
     string file_path,
     const vector<pair<double, double> >& sketches_range_list,
     const vector<double>& ST_size_list

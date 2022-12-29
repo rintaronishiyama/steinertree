@@ -11,7 +11,7 @@ using std::inserter;
 using std::back_inserter;
 using std::unordered_set;
 
-// node_list からランダムにノードを 1 つ取得
+// node_list からランダムにノードを 1 つ取得する
 int get_random_element(const vector<int>& vec){
     vector<int> tmp;
     sample(
@@ -25,6 +25,7 @@ int get_random_element(const vector<int>& vec){
     return tmp[0];
 }
 
+// グラフ上で指定した数のターミナルをサンプリングする
 vector<int> decide_terminals(const Graph& graph, int size) {
     const vector<int>& node_list = graph.get_node_list();
     vector<int> terminals;
@@ -40,6 +41,9 @@ vector<int> decide_terminals(const Graph& graph, int size) {
     return terminals;
 }
 
+
+// グラフ上でランダムにノードを選びシードノードとする
+// シードノード集合のリストを返す
 vector<unordered_set<int> > decide_seed_node_sets(const Graph& graph) {
     // シードノード集合のvector [S1, S2, ..., Sm]
     vector<unordered_set<int> > seed_node_sets;
