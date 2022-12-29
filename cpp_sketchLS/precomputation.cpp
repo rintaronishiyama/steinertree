@@ -79,18 +79,21 @@ int main(int argc, char* argv[])
     double length_to_divide = 0.001;
     vector<vector<int> > divided_list_of_node_list_sorted_by_degree 
         = divide_node_list(node_list_sorted_by_degree, length_to_divide);
+    cout << "Complete dividing node list" << endl;
 
 
     /* BC.txtを読み込み */
     string BC_txt_path = graph_name + "/BC.txt";
     vector<int> node_list_sorted_by_bc;
     read_bc_from_txt_file(BC_txt_path, node_list_sorted_by_bc);
+    cout << "Complete reading BC" << endl;
 
 
     /* BC上位ノード集合のリストを取得 */
     int max_size_of_bc_top_node_set = 128;
     vector<unordered_set<int> > bc_top_node_sets
         = get_node_sets_from_node_list(node_list_sorted_by_bc, max_size_of_bc_top_node_set); 
+    cout << "Complete getting BC top node sets" << endl;
 
 
     /* 次数の降順に sketch 生成 */
@@ -126,6 +129,7 @@ int main(int argc, char* argv[])
 
 
     }
+    cout << "Complete generating extended sketches" << endl;
     
 
     /* パスの設定 */
@@ -133,14 +137,16 @@ int main(int argc, char* argv[])
     string extended_sketches_path = result_dir_path + "/extended_sketches.txt";
 
 
-    /* sketches 保存 */
+    /* extended_sketches 保存 */
     fs::create_directories(result_dir_path);
     write_extended_sketches(extended_sketches_path, extended_sketches);
+    cout << "Complete writing extended sketches" << endl;
 
 
     /* 事前計算時間の結果を保存 */
     string precomputation_time_path = result_dir_path + "/precomputation.txt";
     write_precomputation_time(precomputation_time_path, precomputation_time_list);
+    cout << "Complete writing precomputation time" << endl;
 
 
     return 0;
