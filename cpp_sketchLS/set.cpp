@@ -19,6 +19,7 @@ vector<unordered_set<int> > get_node_sets_from_node_list(
             node_set.insert( node_list.at(i) );
         }
         node_sets.push_back(node_set);
+        size *= 2;
     }
 
     return node_sets;

@@ -95,8 +95,21 @@ void read_extended_sketches_from_txt_file(
             if (str == "end") {
                 break;
             }
-            if (str == "P")
+            if (str == "L") {
+                tmp_extended_sketch.push_back(tmp_path_list_for_seed_set); // 経路リストを追加
+                tmp_path_list_for_seed_set.clear();                        // 経路リストをリセット
+                continue;
+            }
+            if (str == "P") {
+                tmp_path_list_for_seed_set.push_back(tmp_path); // 経路を追加
+                tmp_path.clear();                               // 経路をリセット
+                continue;
+            }
+
+            tmp_path.push_back( stoi(str) );
         }
+
+        extended_sketches[sketch_node] = tmp_extended_sketch;
     }
 }
 

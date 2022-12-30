@@ -62,15 +62,25 @@ int main(int argc, char* argv[])
     /* extended_sketches 読み込み */
     // 型エイリアス
     using Path_List = vector<vector<int> >;
-    using 
-    using Extended_Sketches = unordered_map<int, vector<Path_List> >;
+    using Extended_Sketch = vector<Path_List>;
+    using Extended_Sketches = unordered_map<int, Extended_Sketch>;
 
     Extended_Sketches extended_sketches;
     read_extended_sketches_from_txt_file(extended_sketches_path, extended_sketches);
-    cout << "Complete reading sketches" << endl;
+    cout << "Complete reading extended sketches" << endl;
 
 
-    /* Sketches を分割 */
+
+
+
+    /* extended_sketches を分割なしで実行*/
+
+
+
+
+
+
+    /* extended sketches を分割 */
     double length_to_divide = 0.05;
     
     // sketch 保持の範囲をx軸用に用意
