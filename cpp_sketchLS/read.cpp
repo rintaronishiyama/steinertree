@@ -54,7 +54,7 @@ void read_sketches_from_txt_file(
         vector<vector<int> > tmp_sketch;
         vector<int> tmp_shortest_path_for_seed_set;
         
-        for (string str : str_list) {
+        for (const string& str : str_list) {
             if (str == "end") {
                 break;
             }
@@ -84,8 +84,19 @@ void read_extended_sketches_from_txt_file(
 
     while ( getline(ifs, line) ) {
         vector<string> str_list = split(line, ' ');
-        int extended_sketch_node = stoi( str_list.front() );
-        str_list.
+        int sketch_node = stoi( str_list.front() );
+        str_list.erase(str_list.begin(), str_list.begin() + 2); // sketch_node と : を取り除く
+
+        vector<vector<vector<int> > > tmp_extended_sketch;
+        vector<vector<int> > tmp_path_list_for_seed_set;
+        vector<int> tmp_path;
+
+        for (const string& str : str_list) {
+            if (str == "end") {
+                break;
+            }
+            if (str == "P")
+        }
     }
 }
 

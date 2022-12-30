@@ -79,7 +79,8 @@ vector<vector<vector<int> > > extended_sketch_index(
     // bc上位を避けた経路は生成できない場合があるが, 生成できた経路までを保持
     // 最低でも最短経路は保持することを保証
     using Path_List = vector<vector<int> >;
-    vector<Path_List> extended_sketch;
+    using Extended_Sketch = vector<Path_List>;
+    Extended_Sketch extended_sketch;
 
     /* sketch_node と Si の経路リストを取得 */
     for (const unordered_set<int>& seed_node_set : seed_node_sets) {

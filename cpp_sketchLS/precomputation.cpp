@@ -105,8 +105,11 @@ int main(int argc, char* argv[])
     double bottom = 0;              // 範囲開始位置　
     double top = length_to_divide;  // 範囲終了位置
 
+    // 型エイリアス
     using Path_List = vector<vector<int> >;
-    using Extended_Sketches = unordered_map<int, vector<Path_List> >;
+    using Extended_Sketch = vector<Path_List>;
+    using Extended_Sketches = unordered_map<int, Extended_Sketch>;
+    
     Extended_Sketches extended_sketches;
     for (const vector<int>& node_list : divided_list_of_node_list_sorted_by_degree) {
 

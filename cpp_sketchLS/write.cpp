@@ -44,10 +44,10 @@ void write_extended_sketches(
                     ofs << node << " ";
                 }
 
-                ofs << "N ";    // ノードの意
+                ofs << "P ";    // パスの意
             }
 
-            ofs << "P ";        // パスの意
+            ofs << "L ";        // リストの意
         }
 
         ofs << "end" << endl;   // 行末の意
