@@ -13,6 +13,10 @@ void read_sketches_from_txt_file(
     std::string file_path,
     std::unordered_map<int, std::vector<std::vector<int> > >& sketches);
 
+void read_extended_sketches_from_txt_file(
+    std::string file_path,
+    std::unordered_map<int, std::vector<std::vector<std::vector<int> > > >& extended_sketches);
+
 void read_bc_from_txt_file(
     std::string file_path,
     std::vector<int>& node_list_sorted_by_bc

@@ -34,7 +34,7 @@ void read_graph_from_txt_file(string file_path, Graph& graph) {
 }
 
 
-
+// 指定したファイルから sketches を読み込み
 void read_sketches_from_txt_file(
     string file_path,
     unordered_map<int, vector<vector<int> > >& sketches)
@@ -68,6 +68,27 @@ void read_sketches_from_txt_file(
         sketches[sketch_node] = tmp_sketch;
     }
 }
+
+
+// 指定したファイルから extended sketches を読み込み
+void read_extended_sketches_from_txt_file(
+    string file_path,
+    unordered_map<int, vector<vector<vector<int> > > >& extended_sketches)
+{
+    ifstream ifs(file_path);
+    if (!ifs) {
+        throw "Failed to open file";
+    }
+
+    string line;
+
+    while ( getline(ifs, line) ) {
+        vector<string> str_list = split(line, ' ');
+        int extended_sketch_node = stoi( str_list.front() );
+        str_list.
+    }
+}
+
 
 void read_bc_from_txt_file(
     string file_path,

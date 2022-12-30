@@ -47,53 +47,23 @@ int main(int argc, char* argv[])
     Graph graph;
     read_graph_from_txt_file(dataset_path, graph);
     cout << "Complete reading graph" << endl;
-
-
-    /* avoid bc の確認 */
-    cout << "Select sketches mode" << endl;
-    cout << "1 : normal" << endl;
-    cout << "2 : avoid BC top" << endl;
-    
-    int tmp;
-    cin >> tmp;
-
-    string sketches_mode;
-    if (tmp == 1) {
-        sketches_mode = "normal";
-    }
-    if (tmp == 2) {
-        sketches_mode = "avoid_BC_top";
-    }
-
-
-    /* avoid bc top rate の確認 */
-    double avoid_bc_top_rate;
-    if (sketches_mode == "avoid_BC_top") {
-        cout << "avoid bc top rate (e.g., 0.2):";
-        cin >> avoid_bc_top_rate;
-    }
     
 
-    /* sketches が生成済みか確認 */
+    /* extended_sketches が生成済みか確認 */
     string result_dir_path =  "./" + graph_name;
-    string sketches_path;
-    if (sketches_mode == "normal") {
-        sketches_path = result_dir_path + "/sketches.txt";
-    } else if (sketches_mode == "avoid_BC_top") {
-        sketches_path = result_dir_path + "/sketches_avoid" + std::to_string(avoid_bc_top_rate) + "bc.txt";
-    }
-    if ( !fs::is_regular_file(sketches_path) ) {
+    string extended_sketches_path;
+    extended_sketches_path = result_dir_path + "/extended_sketches.txt";
+    if ( !fs::is_regular_file(extended_sketches_path) ) {
         cout << "There is no sketches.txt" << endl;
         return 1;
     }
     
 
-    /* sketches 読み込み */
-    using Sketches = unordered_map<int, vector<vector<int> > > ;
-    Sketches sketches;
-    Sketches true_sketches;
-    read_sketches_from_txt_file(sketches_path, sketches);
-    read_sketches_from_txt_file(result_dir_path + "/sketches.txt", true_sketches);
+    /* extended_sketches 読み込み */
+    using Path_List = vector<vector<int> >;
+    using Extended_Sketches = unordered_map<int, vector<Path_List> >;
+    Extended_Sketches extended_sketches;
+    read_extended_sketches_from_txt_file(extended_sketches_path, extended_sketches);
     cout << "Complete reading sketches" << endl;
 
 
@@ -159,15 +129,8 @@ int main(int argc, char* argv[])
 
 
     /* 評価を保存 */
-    string overlap_ratio_path;
-    string ST_size_path;
-    if (sketches_mode == "normal") {
-        overlap_ratio_path = result_dir_path + "/overlap_ratio.txt";
-        ST_size_path = result_dir_path + "/size.txt";
-    } else if (sketches_mode == "avoid_BC_top") {
-        overlap_ratio_path = result_dir_path + "/overlap_ratio_avoid" + std::to_string(avoid_bc_top_rate) + "bc.txt";
-        ST_size_path = result_dir_path + "/size_avoid" + std::to_string(avoid_bc_top_rate) + "bc.txt";
-    }
+    string overlap_ratio_path = result_dir_path + "/overlap_ratio.txt";;
+    string ST_size_path = result_dir_path + "/size.txt";;
     write_overlap_ratio(overlap_ratio_path, sketches_range_list, overlap_ratio_list);
     write_ST_size(ST_size_path, sketches_range_list, ST_size_list);
 
