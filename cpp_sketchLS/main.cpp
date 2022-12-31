@@ -69,9 +69,6 @@ int main(int argc, char* argv[])
     read_extended_sketches_from_txt_file(extended_sketches_path, extended_sketches);
     cout << "Complete reading extended sketches" << endl;
 
-
-
-    /* extended_sketches を分割なしで実行*/
     
     /* ターミナルファイルが生成済みか確認 */
     string terminals_path = result_dir_path + "/terminals.txt";
@@ -86,6 +83,9 @@ int main(int argc, char* argv[])
     read_list_of_terminals_from_txt_file(terminals_path, list_of_terminals);
     cout << "Complete reading terminals" << endl;
 
+
+
+    /* extended_sketches を分割なしで実行*/
 
     /* extended sketches から sketches のリストを取得 */
     using Sketch = vector<vector<int> >;

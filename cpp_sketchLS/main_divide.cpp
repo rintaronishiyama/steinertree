@@ -14,7 +14,7 @@
 #include "evaluate.h"
 
 // Files to compile
-// main.cpp graph.cpp read.cpp split.cpp sketchLS.cpp write.cpp random.cpp divide.cpp evaluate.cpp
+// main_divide.cpp graph.cpp read.cpp split.cpp sketchLS.cpp write.cpp random.cpp divide.cpp evaluate.cpp
 
 using std::string;
 using std::vector;

@@ -293,14 +293,17 @@ Graph partial_sketchLS(
 {
     // sketch を持つノードの集合を作成
     unordered_set<int> nodes_having_sketch;
+    
     for (const pair<int, vector<vector<int> > >& item : partial_sketches) {
         nodes_having_sketch.insert(item.first);
     }
 
     // sketch を持たないターミナルの置き換え
+    // 
     vector<pair<pair<int, int>, vector<int> > > pair_of_terminals_and_shortest_path; // <<置き換え前ノード, 置き換え後ノード>, 2 つの最短経路>
     vector<int> alternative_terminals;
     unordered_map<int, vector<vector<int> > > alternative_sketches;
+
     for (int terminal : terminals) {
         if (nodes_having_sketch.count(terminal) != 0) { // sketch を持つならそのまま
             if (find(alternative_terminals.begin(), alternative_terminals.end(), terminal) == alternative_terminals.end()) {
