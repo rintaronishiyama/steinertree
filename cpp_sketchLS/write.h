@@ -38,5 +38,17 @@ void write_ST_size(
     const std::vector<double>& size
 );
 
+void write_overlap_ratio(
+    std::string file_path,
+    const std::vector<std::string>& x_list_for_list_of_sketches,
+    const std::vector<double>& overlap_ratio_list
+);
+
+void write_ST_size(
+    std::string file_path,
+    const std::vector<std::string>& x_list_for_list_of_sketches,
+    const std::vector<double>& size
+);
+
 
 #endif // GUARD_WRITE_H

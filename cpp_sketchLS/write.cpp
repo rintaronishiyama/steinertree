@@ -97,8 +97,7 @@ void write_precomputation_time(
 void write_overlap_ratio(
     string file_path,
     const vector<pair<double, double> >& sketches_range_list,
-    const vector<double>& overlap_ratio_list
-) 
+    const vector<double>& overlap_ratio_list) 
 {
     ofstream ofs(file_path);
 
@@ -113,8 +112,7 @@ void write_overlap_ratio(
 void write_ST_size(
     string file_path,
     const vector<pair<double, double> >& sketches_range_list,
-    const vector<double>& ST_size_list
-)
+    const vector<double>& ST_size_list)
 {
     ofstream ofs(file_path);
 
@@ -124,5 +122,31 @@ void write_ST_size(
         double size = ST_size_list.at(i + 1);
         ofs << range.first << " " << range.second;
         ofs << " : " << size << endl;
+    }
+}
+
+void write_overlap_ratio(
+    string file_path,
+    const vector<string>& x_list_for_list_of_sketches,
+    const vector<double>& overlap_ratio_list)   
+{
+    ofstream ofs(file_path);
+
+    for (int i = 0; i < overlap_ratio_list.size(); ++i) {
+        ofs << x_list_for_list_of_sketches.at(i + 1) << " "
+            << overlap_ratio_list.at(i) << endl;
+    }
+}
+
+void write_ST_size(
+    string file_path,
+    const vector<string>& x_list_for_list_of_sketches,
+    const vector<double>& ST_size_list)    
+{   
+    ofstream ofs(file_path);
+
+    for (int i = 0; i < ST_size_list.size(); ++i) {
+        ofs << x_list_for_list_of_sketches.at(i) << " "
+            << ST_size_list.at(i) << endl;
     }
 }

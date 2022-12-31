@@ -38,6 +38,20 @@ Graph partial_sketchLS(
     const std::unordered_map<int, std::vector<std::vector<int> > >& sketches);
 
 
+/* extended sketches を扱う関数 */
+
+int get_max_number_of_avoided_bc_top_nodes(
+    const std::unordered_map<int, std::vector<std::vector<std::vector<int> > > >& extended_sketches);
+
+std::unordered_map<int, std::vector<std::vector<int> > > get_sketches_from_extended_sketches(
+    const std::unordered_map<int, std::vector<std::vector<std::vector<int> > > >& extended_sketches,
+    int position);
+
+std::vector<std::unordered_map<int, std::vector<std::vector<int> > > > get_list_of_sketches_from_extended_sketches(
+    const std::unordered_map<int, std::vector<std::vector<std::vector<int> > > >& extended_sketches,
+    int max_number_of_avoided_bc_top_nodes);
+
+
 /* 下位関数 */
 
 std::vector<int> get_path_from_sketch(

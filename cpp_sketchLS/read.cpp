@@ -131,3 +131,27 @@ void read_bc_from_txt_file(
         node_list_sorted_by_bc.push_back(node);
     }
 }
+
+
+void read_list_of_terminals_from_txt_file(
+    string file_path,
+    vector<vector<int> >& list_of_terminals)
+{
+    ifstream ifs(file_path);
+    if (!ifs) {
+        throw "Failed to open file";
+    }
+
+    string line;
+
+    while( getline(ifs, line) ) {
+        vector<int> tmp_terminals;
+
+        vector<string> str_list = split(line, ' ');
+        for (const string& str : str_list) {
+            tmp_terminals.push_back( stoi(str) );
+        }
+
+        list_of_terminals.push_back(tmp_terminals);
+    }
+}

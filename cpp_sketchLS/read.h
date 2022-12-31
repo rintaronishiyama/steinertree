@@ -19,8 +19,11 @@ void read_extended_sketches_from_txt_file(
 
 void read_bc_from_txt_file(
     std::string file_path,
-    std::vector<int>& node_list_sorted_by_bc
-);
+    std::vector<int>& node_list_sorted_by_bc);
+
+void read_list_of_terminals_from_txt_file(
+    std::string file_path,
+    std::vector<std::vector<int> >& list_of_terminals);
 
 
 #endif // GUARD_READ_H

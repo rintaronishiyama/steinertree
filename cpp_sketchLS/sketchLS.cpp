@@ -21,6 +21,8 @@ using std::count;
 
 
 
+
+
 // debug
 void print_vector(const vector<int>& vec) {
     for (int i =0 ; i < vec.size(); ++i) {
@@ -36,6 +38,8 @@ void print_vector(const vector<int>& vec) {
 
 
 
+
+
 // 重要な関数が上に来るように下位の関数は前方宣言
 vector<int> get_path_from_sketch(
     const vector<vector<int> >& sketch,
@@ -46,6 +50,9 @@ vector<int> concatenate_path(
     const vector<int>& path_to_add);
 
 bool has_cycle_for_path(const vector<int>& path);
+
+
+
 
 
 /* 事前計算 */
@@ -67,7 +74,8 @@ vector<vector<int> > sketch_index(
     return sketch;
 }
 
-// extended_sketch 生成 (extended_sketchの詳細は関数内に記載)
+// extended_sketch 生成
+// (extended_sketchの詳細は関数内に記載)
 vector<vector<vector<int> > > extended_sketch_index(
     const Graph& graph,
     int sketch_node,
@@ -105,6 +113,9 @@ vector<vector<vector<int> > > extended_sketch_index(
 
     return extended_sketch;
 }
+
+
+
 
 
 /* 実行時計算 */
@@ -318,6 +329,110 @@ Graph partial_sketchLS(
 
     return SteinerTree;
 }
+
+
+
+
+
+
+/* extended sketches を扱う関数 */
+// 避けて経路を生成できた bc 上位ノードの個数の最大値を返す
+int get_max_number_of_avoided_bc_top_nodes(
+    const unordered_map<int, vector<vector<vector<int> > > >& extended_sketches)
+{
+    using Path_List = vector<vector<int> >;
+    using Extended_Sketch = vector<Path_List>;
+
+    int max_number_of_avoided_bc_top_nodes = 1;
+
+    int max_size_of_path_list = 0;
+    for (const pair<int, Extended_Sketch>& item : extended_sketches) {
+        for (const Path_List& path_list : item.second) {
+            if (path_list.size() > max_size_of_path_list) {
+                max_size_of_path_list = path_list.size();
+            }
+        }
+    }
+
+    if (max_size_of_path_list == 1) { // bc を避けた経路が 1 つもない場合
+        return 0;
+    }
+
+    for (int i = 0; i < (max_size_of_path_list - 2); ++i) {
+        max_number_of_avoided_bc_top_nodes *= 2;
+    }
+
+    return max_number_of_avoided_bc_top_nodes;
+}
+
+
+// extended sketches から sketches を取得
+// path_list から指定した位置の path を集める
+// 指定した位置になければそれより小さい位置のものを取ってくる
+unordered_map<int, vector<vector<int> > > get_sketches_from_extended_sketches(
+    const unordered_map<int, vector<vector<vector<int> > > >& extended_sketches,
+    int position)
+{
+    using Sketch = vector<vector<int> >;
+    using Sketches = unordered_map<int, Sketch>;
+
+    using Path_List = vector<vector<int> >;
+    using Extended_Sketch = vector<Path_List>;
+
+    Sketches sketches;
+
+    for (const pair<int, Extended_Sketch>& item : extended_sketches) {
+        Sketch tmp_sketch;
+        for (const Path_List& path_list : item.second) {
+            if (position > (path_list.size() - 1) ) {       // 指定した位置に path がない場合
+                tmp_sketch.push_back( path_list.back() );
+                continue;
+            }
+
+            tmp_sketch.push_back( path_list.at(position) ); // ある場合
+        }
+
+        sketches[item.first] = tmp_sketch;
+    }
+
+    return sketches;
+}
+
+
+// extended sketches から sketches のリストを取得
+// sketches のリストは [オリジナル, bc1個抜き, bc2個抜き, bc4個抜き, ...] となっている
+vector<unordered_map<int, vector<vector<int> > > > get_list_of_sketches_from_extended_sketches(
+    const unordered_map<int, vector<vector<vector<int> > > >& extended_sketches,
+    int max_number_of_avoided_bc_top_nodes)
+{
+    using Sketch = vector<vector<int> >;
+    using Sketches = unordered_map<int, Sketch>;
+    
+    vector<Sketches> list_of_sketches;
+
+    // path_list のサイズの最大値を計算
+    int max_size_of_path_list = 1;
+    if (max_number_of_avoided_bc_top_nodes != 0) {
+        int tmp = 1;
+        while (tmp <= max_number_of_avoided_bc_top_nodes) {
+            tmp *= 2;
+            ++max_size_of_path_list;
+        }
+    }
+
+    // 指定した path_list の位置から path を取得し sketches を生成
+    // できない場合はそれより小さい位置から path を取得
+    for (int i = 0; i < max_size_of_path_list; ++i) {
+        list_of_sketches.push_back(
+            get_sketches_from_extended_sketches(extended_sketches, i)
+        );
+    }
+
+    return list_of_sketches;
+}
+
+
+
 
 
 /* 下位関数 */

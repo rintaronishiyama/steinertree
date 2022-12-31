@@ -2,6 +2,10 @@
 .DS_Store
 # Local History for Visual Studio Code
 .history/
-
 # Built Visual Studio Code Extensions
 *.vsix
+
+# ignore binary files
+cpp_sketchLS/precomputation
+cpp_sketchLS/query
+cpp_sketchLS/main
