@@ -71,14 +71,7 @@ int main(int argc, char* argv[])
 
 
 
-
-
-    /* extended_sketches を分割なしで実行*/
-
-
-
-
-
+    /* extended_sketches を分割ありで実行*/
 
     /* extended sketches を分割 */
     double length_to_divide = 0.05;
