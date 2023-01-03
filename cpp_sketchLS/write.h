@@ -28,27 +28,16 @@ void write_precomputation_time(
 
 void write_overlap_ratio(
     std::string file_path,
-    const std::vector<std::pair<double, double> >& sketches_range_list,
-    const std::vector<double>& overlap_ratio_list
+    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
+    const std::vector<std::string>& x_list_for_limit_range,
+    const std::vector<std::vector<double> >& list_of_list_of_overlap_ratio
 );
 
 void write_ST_size(
     std::string file_path,
-    const std::vector<std::pair<double, double> >& sketches_range_list,
-    const std::vector<double>& size
+    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
+    const std::vector<std::string>& x_list_for_limit_range,
+    const std::vector<std::vector<double> >& list_of_list_of_ST_size
 );
-
-void write_overlap_ratio(
-    std::string file_path,
-    const std::vector<std::string>& x_list_for_list_of_sketches,
-    const std::vector<double>& overlap_ratio_list
-);
-
-void write_ST_size(
-    std::string file_path,
-    const std::vector<std::string>& x_list_for_list_of_sketches,
-    const std::vector<double>& size
-);
-
 
 #endif // GUARD_WRITE_H

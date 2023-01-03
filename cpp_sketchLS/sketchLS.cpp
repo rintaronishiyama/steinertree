@@ -40,7 +40,7 @@ void print_vector(const vector<int>& vec) {
 
 
 
-// 重要な関数が上に来るように下位の関数は前方宣言
+/* 重要な関数が上に来るように下位の関数は前方宣言 */
 vector<int> get_path_from_sketch(
     const vector<vector<int> >& sketch,
     int node);
@@ -50,6 +50,9 @@ vector<int> concatenate_path(
     const vector<int>& path_to_add);
 
 bool has_cycle_for_path(const vector<int>& path);
+
+void remove_unnecessary_path_from_ST(Graph& ST, vector<int> terminals);
+
 
 
 
@@ -299,13 +302,14 @@ Graph partial_sketchLS(
     }
 
     // sketch を持たないターミナルの置き換え
-    // 
     vector<pair<pair<int, int>, vector<int> > > pair_of_terminals_and_shortest_path; // <<置き換え前ノード, 置き換え後ノード>, 2 つの最短経路>
     vector<int> alternative_terminals;
     unordered_map<int, vector<vector<int> > > alternative_sketches;
 
     for (int terminal : terminals) {
         if (nodes_having_sketch.count(terminal) != 0) { // sketch を持つならそのまま
+            // terminal が置き換え後のターミナルリストになければ追加
+            // 置き換え後のターミナルの sketch も設定
             if (find(alternative_terminals.begin(), alternative_terminals.end(), terminal) == alternative_terminals.end()) {
                 alternative_terminals.push_back(terminal);
                 alternative_sketches[terminal] = partial_sketches.at(terminal);
@@ -315,6 +319,9 @@ Graph partial_sketchLS(
             vector<int> shortest_path = graph.bfs_to_node_set(terminal, nodes_having_sketch);
             int alternative_node = shortest_path.back();
             pair_of_terminals_and_shortest_path.push_back({ {terminal, alternative_node}, shortest_path } );
+            
+            // alternative_node が置き換え後のターミナルリストになければ追加
+            // 置き換え後のターミナルの sketch も設定
             if (find(alternative_terminals.begin(), alternative_terminals.end(), alternative_node) == alternative_terminals.end()) {
                 alternative_terminals.push_back(alternative_node);
                 alternative_sketches[alternative_node] = partial_sketches.at(alternative_node);
@@ -325,10 +332,13 @@ Graph partial_sketchLS(
     // 置き換え後のターミナルに対して sketchLS
     Graph SteinerTree = sketchLS(graph, alternative_terminals, alternative_sketches);
 
-    // 置き換え前後の最短経路を追加
+    // 置き換え前後のターミナル間の最短経路を追加
     for (const pair<pair<int, int>, vector<int> >& item : pair_of_terminals_and_shortest_path) {
         SteinerTree.add_path(item.second);
     }
+
+    // ST に余計な経路があれば削除
+    remove_unnecessary_path_from_ST(SteinerTree, terminals);
 
     return SteinerTree;
 }
@@ -484,7 +494,8 @@ vector<int> concatenate_path(
 
 
 // path 自身が閉路を持つか調べる. 持っていれば true, そうでなければ false
-bool has_cycle_for_path(const vector<int>& path) {
+bool has_cycle_for_path(const vector<int>& path)
+{
     for (const int& node : path) {
         if (count(path.begin(), path.end(), node) > 1) {
             return true;
@@ -492,4 +503,163 @@ bool has_cycle_for_path(const vector<int>& path) {
     }
 
     return false;
+}
+
+
+// 非ターミナルの葉のリストを返す
+vector<int> get_non_terminal_leaves (
+    const unordered_map<int, vector<int> >& adjacency_list,
+    const unordered_set<int> terminal_set)
+{
+    vector<int> non_terminal_leaves;
+
+    for (const pair<int, vector<int> >& item : adjacency_list) {
+        // 次数が 1 のノードは葉として追加
+        if ( ( item.second.size() == 1 ) &&  ( !terminal_set.count(item.first) )) {
+            non_terminal_leaves.push_back(item.first);
+        }
+    }
+
+    return non_terminal_leaves;
+}
+
+
+// ターミナルを含まない枝のリストを返す
+vector<vector<int> > get_branches_without_terminal(
+    const unordered_map<int, vector<int> >& adjacency_list,
+    const unordered_set<int> terminal_set,
+    const vector<int>& non_terminal_leaves)
+{
+    vector<vector<int> > branches_without_terminal;
+
+    for (const int& non_terminal_leaf : non_terminal_leaves) {
+        // 現在頂点
+        int current = non_terminal_leaf;
+        // 1 つ前の頂点
+        int previous = -1;
+
+        // 削除する経路
+        vector<int> branch_without_terminal;
+
+        // ターミナルに途中でヒットするかのフラグ
+        bool hit_terminal = false;
+
+        // 次数が 3 以上のノードに当たるまで走査
+        // 途中でターミナルに当たれば終了
+        while (true) {
+            if (adjacency_list.at(current).size() > 2) {
+                branch_without_terminal.push_back(current);
+                break;
+            }
+            if ( terminal_set.count(current) ) {
+                hit_terminal = true;
+                break;
+            }
+
+            branch_without_terminal.push_back(current);
+
+            // 次の頂点を決定
+            for (const int& node : adjacency_list.at(current) ) {
+                if (node != previous) {
+                    previous = current;
+                    current = node;
+                }
+            }
+        }
+
+        // ターミナルにヒットしていなければ追加
+        if (!hit_terminal) {
+            branches_without_terminal.push_back(branch_without_terminal);
+        }
+    }
+
+    return branches_without_terminal;
+}
+
+
+// ターミナルを含むが, 葉がターミナルでない枝上で
+// 葉からターミナルまでのパスのリストを返す
+vector<vector<int> > get_paths_leaf_to_terminal(
+    const unordered_map<int, vector<int> >& adjacency_list,
+    const unordered_set<int> terminal_set,
+    const vector<int>& non_terminal_leaves)
+{
+    vector<vector<int> > paths_leaf_to_terminal;
+
+    for (const int& non_terminal_leaf : non_terminal_leaves) {
+        // 現在頂点
+        int current = non_terminal_leaf;
+        // 1 つ前の頂点
+        int previous = -1;
+
+        // 削除する経路
+        vector<int> path_leaf_to_terminal;
+
+        // 次数が 3 以上のノードに当たるまで走査
+        // 途中でターミナルに当たれば終了
+        while (true) {
+            if (adjacency_list.at(current).size() > 2) {
+                cout << "Branch without terminal is left. It should be deleted before this." << endl;
+                throw;
+            }
+            if ( terminal_set.count(current) ) {
+                path_leaf_to_terminal.push_back(current);
+                break;
+            }
+
+            path_leaf_to_terminal.push_back(current);
+
+            // 次の頂点を決定
+            for (const int& node : adjacency_list.at(current) ) {
+                if (node != previous) {
+                    previous = current;
+                    current = node;
+                }
+            }
+        }
+
+        paths_leaf_to_terminal.push_back(path_leaf_to_terminal);
+    }
+
+    return paths_leaf_to_terminal;
+}
+
+
+// ST の葉が全てターミナルとなるように余計な経路を削除
+// 余計な経路の種類
+// 1 : ターミナルを含まない枝 (除くのは葉から枝分かれした位置までの経路)
+// 2 : ターミナルを含むが, 葉がターミナルでない枝 (除くのは葉から枝中のターミナルまでの経路)
+void remove_unnecessary_path_from_ST(Graph& ST, vector<int> terminals)
+{
+    // 扱いやすくするため unordered_set にコンバート
+    unordered_set<int> terminal_set;
+    for (const int& terminal : terminals) {
+        terminal_set.insert(terminal);
+    }
+
+    // ST 中のターミナルでない葉を特定
+    const unordered_map<int, vector<int> >& adjacency_list = ST.get_adjacency_list();
+    vector<int> non_terminal_leaves = get_non_terminal_leaves(adjacency_list, terminal_set);
+
+    // 余計な経路のタイプ 1 を特定
+    vector<vector<int> > branches_without_terminal
+        = get_branches_without_terminal(adjacency_list, terminal_set, non_terminal_leaves);
+
+    // 削除
+    for (const vector<int>& branch_without_terminal : branches_without_terminal) {
+        ST.delete_path(branch_without_terminal);
+    }
+
+    // ST 中のターミナルでない葉を再び特定
+    non_terminal_leaves.clear();
+    non_terminal_leaves = get_non_terminal_leaves(adjacency_list, terminal_set);
+
+    // 余計な経路のタイプ 2 を特定
+    vector<vector<int> > paths_leaf_to_terminal
+        = get_paths_leaf_to_terminal(adjacency_list, terminal_set, non_terminal_leaves);
+
+    // 削除
+    for (const vector<int>& path_leaf_to_terminal : paths_leaf_to_terminal) {
+        ST.delete_path(path_leaf_to_terminal);
+    }
 }

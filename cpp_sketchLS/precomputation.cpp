@@ -90,7 +90,9 @@ int main(int argc, char* argv[])
 
 
     /* BC上位ノード集合のリストを取得 */
-    int max_size_of_bc_top_node_set = 128;
+    int max_size_of_bc_top_node_set;
+    cout << "max size of bc top node set : ";
+    cin >> max_size_of_bc_top_node_set;
     vector<unordered_set<int> > bc_top_node_sets
         = get_node_sets_from_node_list(node_list_sorted_by_bc, max_size_of_bc_top_node_set); 
     cout << "Complete getting BC top node sets" << endl;

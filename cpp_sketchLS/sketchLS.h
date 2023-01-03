@@ -35,7 +35,7 @@ Graph sketchLS(
 Graph partial_sketchLS(
     const Graph& graph,
     std::vector<int> terminals,
-    const std::unordered_map<int, std::vector<std::vector<int> > >& sketches);
+    const std::unordered_map<int, std::vector<std::vector<int> > >& partial_sketches);
 
 
 /* extended sketches を扱う関数 */
@@ -63,5 +63,21 @@ std::vector<int> concatenate_path(
     const std::vector<int>& path_to_add);
 
 bool has_cycle_for_path(const std::vector<int>& path);
+
+std::vector<int> get_non_terminal_leaves(
+    const std::unordered_map<int, std::vector<int> >& adjacency_list,
+    const std::unordered_set<int> terminal_set);
+
+std::vector<std::vector<int> > get_branches_without_terminal(
+    const std::unordered_map<int, std::vector<int> >& adjacency_list,
+    const std::unordered_set<int> terminal_set,
+    const std::vector<int>& non_terminal_leaves);
+
+std::vector<std::vector<int> > get_paths_leaf_to_terminal(
+    const std::unordered_map<int, std::vector<int> >& adjacency_list,
+    const std::unordered_set<int> terminal_set,
+    const std::vector<int>& non_terminal_leaves);
+
+void remove_unnecessary_path_from_ST(Graph& ST, std::vector<int> terminals);
 
 #endif // GUARD_SKETCHLS_H

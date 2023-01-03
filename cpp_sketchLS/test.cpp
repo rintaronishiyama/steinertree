@@ -13,13 +13,12 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-    if (0) {
-        cout << "0" << endl;
-    }
-    if (1) {
-        cout << "1" << endl;
-    }
-    if (304040204) {
-        cout << "3402040" << endl;
-    }
+    double a = 0.05;
+    int b = 5;
+    string c = to_string(b) + "cc";
+
+    cout << a * 101 << endl;
+    cout << to_string( a * 100 ) << endl;
+    cout << to_string( static_cast<int>(a * 100) ) << endl;
+    cout << c << endl;
 }

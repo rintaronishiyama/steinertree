@@ -23,6 +23,7 @@ class Graph{
         void add_edge(int n1, int n2);
         void delete_edge(int n1, int n2);
         void add_path(const std::vector<int>& path);
+        void delete_path(const std::vector<int>& path);
 
         // グラフの分析
         bool is_connected() const;

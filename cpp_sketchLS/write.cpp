@@ -93,60 +93,36 @@ void write_precomputation_time(
     }
 }
 
-
 void write_overlap_ratio(
     string file_path,
-    const vector<pair<double, double> >& sketches_range_list,
-    const vector<double>& overlap_ratio_list) 
+    const vector<string>& x_list_for_avoided_bc_top_nodes, 
+    const vector<string>& x_list_for_limit_range,
+    const vector<vector<double> >& list_of_list_of_overlap_raio)
 {
     ofstream ofs(file_path);
 
-    for (int i = 0; i < sketches_range_list.size(); ++i) {
-        pair range = sketches_range_list.at(i);
-        double overlap_ratio = overlap_ratio_list.at(i);
-        ofs << range.first << " " << range.second;
-        ofs << " : " << overlap_ratio << endl;
+    for (int i = 0; i < list_of_list_of_overlap_raio.size(); ++i) {
+        for (int j = 0; j < list_of_list_of_overlap_raio.at(i).size(); ++j) {
+            ofs << x_list_for_avoided_bc_top_nodes.at(i) << " "
+                << x_list_for_limit_range.at(j) << " "
+                << list_of_list_of_overlap_raio.at(i).at(j) << endl;
+        }
     }
 }
 
 void write_ST_size(
     string file_path,
-    const vector<pair<double, double> >& sketches_range_list,
-    const vector<double>& ST_size_list)
+    const vector<string>& x_list_for_avoided_bc_top_nodes, 
+    const vector<string>& x_list_for_limit_range,
+    const vector<vector<double> >& list_of_list_of_ST_size)
 {
     ofstream ofs(file_path);
 
-    ofs << "original : " << ST_size_list.at(0) << endl;
-    for (int i = 1; i < sketches_range_list.size(); ++i) {
-        pair range = sketches_range_list.at(i);
-        double size = ST_size_list.at(i + 1);
-        ofs << range.first << " " << range.second;
-        ofs << " : " << size << endl;
-    }
-}
-
-void write_overlap_ratio(
-    string file_path,
-    const vector<string>& x_list_for_list_of_sketches,
-    const vector<double>& overlap_ratio_list)   
-{
-    ofstream ofs(file_path);
-
-    for (int i = 0; i < overlap_ratio_list.size(); ++i) {
-        ofs << x_list_for_list_of_sketches.at(i + 1) << " "
-            << overlap_ratio_list.at(i) << endl;
-    }
-}
-
-void write_ST_size(
-    string file_path,
-    const vector<string>& x_list_for_list_of_sketches,
-    const vector<double>& ST_size_list)    
-{   
-    ofstream ofs(file_path);
-
-    for (int i = 0; i < ST_size_list.size(); ++i) {
-        ofs << x_list_for_list_of_sketches.at(i) << " "
-            << ST_size_list.at(i) << endl;
+    for (int i = 0; i < list_of_list_of_ST_size.size(); ++i) {
+        for (int j = 0; j < list_of_list_of_ST_size.at(i).size(); ++j) {
+            ofs << x_list_for_avoided_bc_top_nodes.at(i) << " "
+                << x_list_for_limit_range.at(j) << " "
+                << list_of_list_of_ST_size.at(i).at(j) << endl;
+        }
     }
 }

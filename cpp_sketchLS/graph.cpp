@@ -99,7 +99,7 @@ void Graph::add_edge(int n1, int n2){
     this->adjacency_list[n1].push_back(n2);
     this->adjacency_list[n2].push_back(n1);
 
-    // node_list になければ追加
+    // node_list になければ追加, number_of_nodes をインクリメント
     if (find(this->node_list.begin(), this->node_list.end(), n1) == this->node_list.end()) {
         this->node_list.push_back(n1);
         ++this->number_of_nodes;
@@ -125,7 +125,7 @@ void Graph::delete_edge(int n1, int n2) {
         dic[n2].erase(find_itr2);
     }
 
-    // n1, n2 の隣接ノードがなければ adjacency_list と node_list から削除
+    // n1, n2 の隣接ノードがなければ adjacency_list と node_list から削除, number_of_nodes をデクリメント
     if ( dic[n1].empty() ) {
         dic.erase(n1);
         this->node_list.erase(find(this->node_list.begin(), this->node_list.end(), n1));
@@ -133,7 +133,7 @@ void Graph::delete_edge(int n1, int n2) {
     }
     if ( dic[n2].empty() ) {
         dic.erase(n2);
-        this->node_list.erase(find(this->node_list.begin(), this->node_list.end(), n1));
+        this->node_list.erase(find(this->node_list.begin(), this->node_list.end(), n2));
         --this->number_of_nodes;
     }
 }
@@ -141,6 +141,12 @@ void Graph::delete_edge(int n1, int n2) {
 void Graph::add_path(const vector<int>& path) {
     for (int i = 0; i < (path.size() - 1); ++i) {
         this->add_edge(path[i], path[i + 1]);
+    }
+}
+
+void Graph::delete_path(const vector<int>& path) {
+    for (int i = 0; i < (path.size() - 1); ++i) {
+        this->delete_edge(path[i], path[i + 1]);
     }
 }
 
