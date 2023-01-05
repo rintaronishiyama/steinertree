@@ -40,6 +40,9 @@ class Graph{
             const std::unordered_set<int>& node_set,
             const std::unordered_set<int>& node_set_to_avoid) const;
         std::vector<int> find_shortest_path(int source, int target) const;
+
+        // グラフの出力
+        void output_graph() const;
 };
 
 #endif // GUARD_GRAPH_H

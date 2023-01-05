@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+
 def plot_overlap_ratio(data_path) :
     f = open(data_path, 'r')
     lines = f.readlines()

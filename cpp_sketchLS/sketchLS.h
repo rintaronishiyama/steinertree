@@ -80,4 +80,6 @@ std::vector<std::vector<int> > get_paths_leaf_to_terminal(
 
 void remove_unnecessary_path_from_ST(Graph& ST, std::vector<int> terminals);
 
+void add_edges_til_terminal_connects_to_ST(Graph& ST, const std::vector<int> path);
+
 #endif // GUARD_SKETCHLS_H

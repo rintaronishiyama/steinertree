@@ -25,6 +25,7 @@ using std::endl;
 using std::ifstream;
 using std::unordered_map;
 using std::pair;
+using std::to_string;
 
 namespace fs = std::filesystem;
 
@@ -105,9 +106,9 @@ int main(int argc, char* argv[])
 
     /* extended sketches を分割 */
     // 分割する長さを決定
-    double length_to_divide_sketches;
-    cout << "length to divide sketches (e.g., 0.05) : ";
-    cin >> length_to_divide_sketches;
+    double length_to_divide_sketches = 0.05;
+    // cout << "length to divide sketches (e.g., 0.05) : ";
+    // cin >> length_to_divide_sketches;
 
     // 次数の降順にソートしたノードリストを取得
     vector<int> node_list_sorted_by_degree = graph.get_node_list_sorted_by_degree();
@@ -161,13 +162,26 @@ int main(int argc, char* argv[])
     );
 
 
+
+
     /* 実行 */
+
+
+    // debug
+    // partial sketchLS の ST の葉がターミナルだけか確認のため
+    vector<Graph> list_of_ST_for_debug;
+    vector<vector<int> > list_of_terminals_for_debug;
+
+    // 何セット目の実行か確認
+    int count_terminals = 0;
 
     // グラフのノード数を取得
     int n = graph.get_number_of_nodes();
 
     for (const vector<int>& terminals : list_of_terminals) {
-        cout << "terminal changed" << endl;
+        ++count_terminals;
+        cout << "set " << count_terminals << " starts" << endl;
+
         // 外側の vector : 避けたbc上位ノードの個数             [original, 1, 2, 4, ...]
         // 内側の vector : sketch の保持を限定したノードの範囲   [no division, 0-5, 5-10, ...]
         vector<vector<Graph> > list_of_list_of_ST;
@@ -179,41 +193,52 @@ int main(int argc, char* argv[])
             for (const Sketches& sketches : list_of_sketches) {
                 // 全ノードの Sketch を持つ sketches は sketchLS
                 if (sketches.size() == n) {
-                    cout << "Start SketchLS" << endl;
+                    cout << "sketchLS starts" << endl;
+
                     tmp_list_of_ST.push_back(sketchLS(graph, terminals, sketches));
                     continue;
                 }
 
                 // 全ノードの Sketch を持たない sketches は partial_sketchLS
-                cout << "Start Partial SketchLS" << endl;
+                cout << "partial sketchLS starts" << endl;
+
                 tmp_list_of_ST.push_back(partial_sketchLS(graph, terminals, sketches));
-                cout << "End Partial SketchLS" << endl;
             }
 
             list_of_list_of_ST.push_back(tmp_list_of_ST);
-            cout << "Executing for a terminal done" << endl;
         }
 
         // overlap ratio 記録
-        cout << "Start Recording OR" << endl;
+        cout << "overlap ratio recording starts" << endl;
+
         const Graph& original_ST = list_of_list_of_ST.front().front();
         for (int i = 0; i < list_of_list_of_ST.size(); ++i) {
             for (int j = 0; j < list_of_list_of_ST.at(i).size(); ++j) {
                 list_of_list_of_overlap_ratio[i][j]
-                    = evaluate_overlap_ratio(original_ST, list_of_list_of_ST[i][j], terminals);
+                    += evaluate_overlap_ratio(original_ST, list_of_list_of_ST[i][j], terminals);
             }
         }
-        cout << "End Recording OR" << endl;
 
         // サイズ記録
-        cout << "Start Recording SS" << endl;
+        cout << "ST size recording starts" << endl;
+
         for (int i = 0; i < list_of_list_of_ST.size(); ++i) {
             for (int j = 0; j < list_of_list_of_ST.at(i).size(); ++j) {
                 list_of_list_of_ST_size[i][j]
-                    = list_of_list_of_ST[i][j].get_number_of_edges();
+                    += list_of_list_of_ST[i][j].get_number_of_edges();
             }
         }
-        cout << "End Recording SS" << endl;
+
+
+
+        // debug
+        if (count_terminals % 10 == 0) {
+            // 最もbc上位を避けて, 次数下位に sketch をもたせた場合の ST をチェック
+            list_of_ST_for_debug.push_back(list_of_list_of_ST.back().back());
+            list_of_terminals_for_debug.push_back(terminals);
+        }
+
+
     }
     cout << "Complete executing" << endl;
 
@@ -250,6 +275,23 @@ int main(int argc, char* argv[])
         list_of_list_of_ST_size);
     cout << "Complete writing evaluation" << endl;
 
+
+
+    // debug
+    string debug_path = result_dir_path + "/debug";
+    fs::create_directories(debug_path);
+    int count_for_debug2 = 1;
+    for (int i = 0; i < list_of_ST_for_debug.size(); ++i) {
+        const Graph& ST = list_of_ST_for_debug.at(i);
+        const vector<int>& terminals = list_of_terminals_for_debug.at(i);
+
+        string ST_path = debug_path + "/ST" + to_string(count_for_debug2) + ".txt";
+
+        write_graph(ST_path, ST);
+        write_terminals_to_exisiting_txt(ST_path, terminals);
+
+        ++count_for_debug2;
+    }
 
     return 0;
 }

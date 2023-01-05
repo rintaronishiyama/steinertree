@@ -16,11 +16,13 @@ void write_extended_sketches(
     std::string file_path,
     const std::unordered_map<int, std::vector<std::vector<std::vector<int> > > >& extended_sketches);
 
-void write_terminals(
+void write_list_of_terminals(
     std::string file_path,
     const std::vector<std::vector<int> >& list_of_terminals);
 
 void write_graph(std::string file_path, const Graph& graph);
+
+void write_terminals_to_exisiting_txt(std::string file_path, const std::vector<int>& terminals);
 
 void write_precomputation_time(
     std::string file_path,

@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
 
     /* terminals のリストを書き込み */
     string terminals_path = graph_name + "/terminals.txt";
-    write_terminals(terminals_path, list_of_terminals);
+    write_list_of_terminals(terminals_path, list_of_terminals);
 
     return 0;
 }

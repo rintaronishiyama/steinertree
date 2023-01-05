@@ -359,3 +359,20 @@ vector<int> Graph::find_shortest_path(int source, int target) const {
     node_set.insert(target);
     return this->bfs_to_node_set(source, node_set);
 }
+
+
+
+/* グラフの出力 */
+void Graph::output_graph() const {
+    unordered_map<int, vector<int> > adjacency_list = this->get_adjacency_list();
+
+    for (const pair<int, vector<int> >& item : adjacency_list) {
+        cout << item.first << " : ";
+
+        for (const int& neighbor : item.second ) {
+            cout << neighbor << " ";
+        }
+
+        cout << endl;
+    }
+}

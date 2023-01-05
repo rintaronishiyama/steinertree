@@ -1,6 +1,9 @@
 #include <vector>
 #include <string>
+#include <iostream>
 
+using std::cout;
+using std::endl; 
 using std::vector;
 using std::string;
 using std::to_string;
@@ -34,7 +37,7 @@ vector<string> get_x_list_for_limit_range(
     x_list_for_limit_range.push_back("NoDivision");
 
     int length_of_range_percent = static_cast<int>(length_to_divide * 100);
-    int times_of_division = static_cast<int>(1 / length_of_range_percent);
+    int times_of_division = static_cast<int>(100 / length_of_range_percent);
 
     for (int i = 0; i < times_of_division; ++i) {
         int bottom = length_of_range_percent * i;

@@ -54,11 +54,12 @@ void write_extended_sketches(
     }
 }
 
-void write_terminals(
+void write_list_of_terminals(
     string file_path,
     const vector<vector<int> >& list_of_terminals)
 {
     ofstream ofs(file_path);
+
     for (const vector<int>& terminals : list_of_terminals) {
         for (const int& terminal : terminals) {
             if (terminal == terminals.back()) {
@@ -72,6 +73,7 @@ void write_terminals(
 
 void write_graph(string file_path, const Graph& graph) {
     ofstream ofs(file_path);
+
     for (const pair<int, vector<int> >& item : graph.get_adjacency_list() ) {
         ofs << item.first << " : ";
         for (int node : item.second) {
@@ -79,6 +81,16 @@ void write_graph(string file_path, const Graph& graph) {
         }
         ofs << endl;
     }
+}
+
+void write_terminals_to_exisiting_txt(string file_path, const vector<int>& terminals){
+    ofstream ofs(file_path, std::ios::app); // 追加書き込みのため第2引数を指定
+    
+    for (const int& terminal : terminals) {
+        ofs << terminal << " ";
+    }
+
+    ofs << endl;
 }
 
 void write_precomputation_time(
