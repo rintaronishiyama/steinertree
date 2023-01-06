@@ -15,7 +15,7 @@
 #include "x.h"
 
 // Files to compile
-// main_divide.cpp graph.cpp read.cpp split.cpp sketchLS.cpp write.cpp random.cpp divide.cpp evaluate.cpp x.cpp
+// main.cpp graph.cpp read.cpp split.cpp sketchLS.cpp write.cpp random.cpp divide.cpp evaluate.cpp x.cpp
 
 using std::string;
 using std::vector;
@@ -99,11 +99,6 @@ int main(int argc, char* argv[])
     cout << "Complete getting list of avoided bc sketches" << endl;
 
 
-
-    /* extended_sketches を分割ありで実行*/
-
-
-
     /* extended sketches を分割 */
     // 分割する長さを決定
     double length_to_divide_sketches = 0.05;
@@ -160,6 +155,25 @@ int main(int argc, char* argv[])
         x_list_for_avoided_bc_top_nodes.size(),
         vector<double>(x_list_for_limit_range.size(), 0)
     );
+    vector<vector<double> > list_of_list_of_sum_of_degree(
+        x_list_for_avoided_bc_top_nodes.size(),
+        vector<double>(x_list_for_limit_range.size(), 0)
+    );
+    vector<vector<double> > list_of_list_of_sum_of_bc(
+        x_list_for_avoided_bc_top_nodes.size(),
+        vector<double>(x_list_for_limit_range.size(), 0)
+    );
+
+    // BC の読み込み
+    unordered_map<int, double> bc_map;
+    string BC_txt_path = result_dir_path + "/BC.txt";
+    read_bc_from_txt_file(BC_txt_path, bc_map);
+
+
+    /* ST 確認の為の準備 */ 
+    // partial sketchLS の ST の葉がターミナルだけか確認のため
+    vector<Graph> list_of_ST_for_checking;
+    vector<vector<int> > list_of_terminals_for_checking;
 
 
 
@@ -167,10 +181,7 @@ int main(int argc, char* argv[])
     /* 実行 */
 
 
-    // debug
-    // partial sketchLS の ST の葉がターミナルだけか確認のため
-    vector<Graph> list_of_ST_for_debug;
-    vector<vector<int> > list_of_terminals_for_debug;
+
 
     // 何セット目の実行か確認
     int count_terminals = 0;
@@ -193,15 +204,11 @@ int main(int argc, char* argv[])
             for (const Sketches& sketches : list_of_sketches) {
                 // 全ノードの Sketch を持つ sketches は sketchLS
                 if (sketches.size() == n) {
-                    cout << "sketchLS starts" << endl;
-
                     tmp_list_of_ST.push_back(sketchLS(graph, terminals, sketches));
                     continue;
                 }
 
                 // 全ノードの Sketch を持たない sketches は partial_sketchLS
-                cout << "partial sketchLS starts" << endl;
-
                 tmp_list_of_ST.push_back(partial_sketchLS(graph, terminals, sketches));
             }
 
@@ -209,8 +216,6 @@ int main(int argc, char* argv[])
         }
 
         // overlap ratio 記録
-        cout << "overlap ratio recording starts" << endl;
-
         const Graph& original_ST = list_of_list_of_ST.front().front();
         for (int i = 0; i < list_of_list_of_ST.size(); ++i) {
             for (int j = 0; j < list_of_list_of_ST.at(i).size(); ++j) {
@@ -220,8 +225,6 @@ int main(int argc, char* argv[])
         }
 
         // サイズ記録
-        cout << "ST size recording starts" << endl;
-
         for (int i = 0; i < list_of_list_of_ST.size(); ++i) {
             for (int j = 0; j < list_of_list_of_ST.at(i).size(); ++j) {
                 list_of_list_of_ST_size[i][j]
@@ -229,13 +232,27 @@ int main(int argc, char* argv[])
             }
         }
 
+        // ターミナルを除くノードの次数の合計を記録
+        for (int i = 0; i < list_of_list_of_ST.size(); ++i) {
+            for (int j = 0; j < list_of_list_of_ST.at(i).size(); ++j) {
+                list_of_list_of_sum_of_degree[i][j]
+                    += evaluate_sum_of_degree(graph, list_of_list_of_ST[i][j], terminals);
+            }
+        }
 
+        // ターミナルを除くノードのBCの合計を記録
+        for (int i = 0; i < list_of_list_of_ST.size(); ++i) {
+            for (int j = 0; j < list_of_list_of_ST.at(i).size(); ++j) {
+                list_of_list_of_sum_of_bc[i][j]
+                    += evaluate_sum_of_bc(bc_map, list_of_list_of_ST[i][j], terminals);
+            }
+        }
 
-        // debug
-        if (count_terminals % 10 == 0) {
+        // ST 確認のため
+        if (count_terminals % (list_of_terminals.size() / 10) == 0) {
             // 最もbc上位を避けて, 次数下位に sketch をもたせた場合の ST をチェック
-            list_of_ST_for_debug.push_back(list_of_list_of_ST.back().back());
-            list_of_terminals_for_debug.push_back(terminals);
+            list_of_ST_for_checking.push_back(list_of_list_of_ST.back().back());
+            list_of_terminals_for_checking.push_back(terminals);
         }
 
 
@@ -255,12 +272,26 @@ int main(int argc, char* argv[])
             ST_size /= list_of_terminals.size();
         }
     }
+
+    for (vector<double>& list_of_sum_of_degree : list_of_list_of_sum_of_degree) {
+        for (double& sum_of_degree : list_of_sum_of_degree) {
+            sum_of_degree /= list_of_terminals.size();
+        }
+    }
+
+    for (vector<double>& list_of_sum_of_bc : list_of_list_of_sum_of_bc) {
+        for (double& sum_of_bc : list_of_sum_of_bc) {
+            sum_of_bc /= list_of_terminals.size();
+        }
+    }
     cout << "Complete averaging" << endl;
 
 
     /* 評価を保存 */
     string overlap_ratio_path = result_dir_path + "/overlap_ratio.txt";
     string ST_size_path = result_dir_path + "/size.txt";
+    string sum_of_degree_path = result_dir_path + "/sum_of_degree.txt";
+    string sum_of_bc_path = result_dir_path + "/sum_of_bc.txt";
 
     write_overlap_ratio(
         overlap_ratio_path,
@@ -273,25 +304,38 @@ int main(int argc, char* argv[])
         x_list_for_avoided_bc_top_nodes,
         x_list_for_limit_range,
         list_of_list_of_ST_size);
+
+    write_sum_of_degree(
+        sum_of_degree_path,
+        x_list_for_avoided_bc_top_nodes,
+        x_list_for_limit_range,
+        list_of_list_of_sum_of_degree);
+
+    write_sum_of_bc(
+        sum_of_bc_path,
+        x_list_for_avoided_bc_top_nodes,
+        x_list_for_limit_range,
+        list_of_list_of_sum_of_bc);
+
     cout << "Complete writing evaluation" << endl;
 
 
+    // ST 確認の為に保存
+    string ST_checking_path = result_dir_path + "/ST_checking";
+    fs::create_directories(ST_checking_path);
+    int count_for_ST_checking = 1;
+    for (int i = 0; i < list_of_ST_for_checking.size(); ++i) {
+        const Graph& ST = list_of_ST_for_checking.at(i);
+        const vector<int>& terminals = list_of_terminals_for_checking.at(i);
 
-    // debug
-    string debug_path = result_dir_path + "/debug";
-    fs::create_directories(debug_path);
-    int count_for_debug2 = 1;
-    for (int i = 0; i < list_of_ST_for_debug.size(); ++i) {
-        const Graph& ST = list_of_ST_for_debug.at(i);
-        const vector<int>& terminals = list_of_terminals_for_debug.at(i);
-
-        string ST_path = debug_path + "/ST" + to_string(count_for_debug2) + ".txt";
+        string ST_path = ST_checking_path + "/ST" + to_string(count_for_ST_checking) + ".txt";
 
         write_graph(ST_path, ST);
         write_terminals_to_exisiting_txt(ST_path, terminals);
 
-        ++count_for_debug2;
+        ++count_for_ST_checking;
     }
+    cout << "Complete writing STs for checking" << endl;
 
     return 0;
 }

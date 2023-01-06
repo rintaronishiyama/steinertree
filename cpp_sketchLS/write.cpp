@@ -138,3 +138,39 @@ void write_ST_size(
         }
     }
 }
+
+
+void write_sum_of_degree(
+    string file_path,
+    const vector<string>& x_list_for_avoided_bc_top_nodes, 
+    const vector<string>& x_list_for_limit_range,
+    const vector<vector<double> >& list_of_list_of_sum_of_degree)
+{
+    ofstream ofs(file_path);
+
+    for (int i = 0; i < list_of_list_of_sum_of_degree.size(); ++i) {
+        for (int j = 0; j < list_of_list_of_sum_of_degree.at(i).size(); ++j) {
+            ofs << x_list_for_avoided_bc_top_nodes.at(i) << " "
+                << x_list_for_limit_range.at(j) << " "
+                << list_of_list_of_sum_of_degree.at(i).at(j) << endl;
+        }
+    }
+}
+
+
+void write_sum_of_bc(
+    string file_path,
+    const vector<string>& x_list_for_avoided_bc_top_nodes, 
+    const vector<string>& x_list_for_limit_range,
+    const vector<vector<double> >& list_of_list_of_sum_of_bc)
+{
+    ofstream ofs(file_path);
+
+    for (int i = 0; i < list_of_list_of_sum_of_bc.size(); ++i) {
+        for (int j = 0; j < list_of_list_of_sum_of_bc.at(i).size(); ++j) {
+            ofs << x_list_for_avoided_bc_top_nodes.at(i) << " "
+                << x_list_for_limit_range.at(j) << " "
+                << list_of_list_of_sum_of_bc.at(i).at(j) << endl;
+        }
+    }
+}

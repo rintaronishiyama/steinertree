@@ -114,7 +114,7 @@ void read_extended_sketches_from_txt_file(
 }
 
 
-void read_bc_from_txt_file(
+void read_node_list_sorted_by_bc_from_txt_file(
     string file_path,
     vector<int>& node_list_sorted_by_bc)
 {
@@ -153,5 +153,27 @@ void read_list_of_terminals_from_txt_file(
         }
 
         list_of_terminals.push_back(tmp_terminals);
+    }
+}
+
+
+void read_bc_from_txt_file(
+    string file_path,
+    unordered_map<int, double>& bc_map)
+{
+    ifstream ifs(file_path);
+    if (!ifs) {
+        throw "Failed to open file";
+    }
+
+    string line;
+
+    while( getline(ifs, line) ) {
+        vector<string> str_list = split(line, ' ');
+        
+        int node = stoi( str_list.at(0) );
+        double bc = stod( str_list.at(1) );
+
+        bc_map[node] = bc;
     }
 }

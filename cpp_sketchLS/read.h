@@ -3,7 +3,6 @@
 
 #include <string>
 #include <unordered_map>
-#include <map>
 
 class Graph;
 
@@ -17,13 +16,17 @@ void read_extended_sketches_from_txt_file(
     std::string file_path,
     std::unordered_map<int, std::vector<std::vector<std::vector<int> > > >& extended_sketches);
 
-void read_bc_from_txt_file(
+void read_node_list_sorted_by_bc_from_txt_file(
     std::string file_path,
     std::vector<int>& node_list_sorted_by_bc);
 
 void read_list_of_terminals_from_txt_file(
     std::string file_path,
     std::vector<std::vector<int> >& list_of_terminals);
+
+void read_bc_from_txt_file(
+    std::string file_path,
+    std::unordered_map<int, double>& bc_map);
 
 
 #endif // GUARD_READ_H

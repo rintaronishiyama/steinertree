@@ -34,7 +34,7 @@ vector<string> get_x_list_for_limit_range(
 {
     vector<string> x_list_for_limit_range;
 
-    x_list_for_limit_range.push_back("NoDivision");
+    x_list_for_limit_range.push_back("Original");
 
     int length_of_range_percent = static_cast<int>(length_to_divide * 100);
     int times_of_division = static_cast<int>(100 / length_of_range_percent);

@@ -42,4 +42,18 @@ void write_ST_size(
     const std::vector<std::vector<double> >& list_of_list_of_ST_size
 );
 
+void write_sum_of_degree(
+    std::string file_path,
+    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
+    const std::vector<std::string>& x_list_for_limit_range,
+    const std::vector<std::vector<double> >& list_of_list_of_sum_of_degree
+);
+
+void write_sum_of_bc(
+    std::string file_path,
+    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
+    const std::vector<std::string>& x_list_for_limit_range,
+    const std::vector<std::vector<double> >& list_of_list_of_sum_of_bc
+);
+
 #endif // GUARD_WRITE_H

@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
     /* BC.txtを読み込み */
     string BC_txt_path = graph_name + "/BC.txt";
     vector<int> node_list_sorted_by_bc;
-    read_bc_from_txt_file(BC_txt_path, node_list_sorted_by_bc);
+    read_node_list_sorted_by_bc_from_txt_file(BC_txt_path, node_list_sorted_by_bc);
     cout << "Complete reading BC" << endl;
 
 

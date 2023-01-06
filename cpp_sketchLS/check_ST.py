@@ -35,9 +35,9 @@ def draw_ST(graph_path) :
     plt.close()
 
 dataset_name = input("enter dataset : ")
-debug_dir_path = "./" + dataset_name + "/debug"
+ST_checking_dir_path = "./" + dataset_name + "/ST_checking"
 
-files = os.listdir(debug_dir_path)
+files = os.listdir(ST_checking_dir_path)
 for file in files :
     if file[-3:] == "txt" :
-        draw_ST(debug_dir_path + "/" + file)
+        draw_ST(ST_checking_dir_path + "/" + file)

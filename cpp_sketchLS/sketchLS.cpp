@@ -182,12 +182,6 @@ Graph sketchLS(
         }
     }
 
-    // debug
-    // for (const pair<int, vector<int> >& item : BFS_of_terminals) {
-    //     cout << item.first << " : ";
-    //     print_vector(item.second);
-    // }
-
     unordered_map<int, vector<int> > visited_nodes_of_terminals; // ターミナル毎の訪問したノード
     vector<int> set_of_covered_terminals;                        // カバーしたターミナル
 
@@ -235,16 +229,8 @@ Graph sketchLS(
                         
                         vector<int> tmp_path = concatenate_path(path_from_searching_terminal, path_to_other_terminal);
 
-                        // debug
-                        // cout << "tmp_path : ";
-                        // print_vector(tmp_path);
-
                         /* tmp_path 自身が閉路を持つか確認 */
                         if ( has_cycle_for_path(tmp_path) ) {
-
-                            // // debug
-                            // cout << "tmp_path has cycle" << endl;
-
                             continue;
                         }
 
@@ -252,15 +238,8 @@ Graph sketchLS(
                         Graph Tcopy{T};
                         Tcopy.add_path(tmp_path);
                         if ( Tcopy.has_cycle() ) {
-
-                            // // debug
-                            // cout << "tmp_path make cycle" << endl;
-
                             continue;
                         }
-
-                        // debug
-                        // cout << "tmp_path doesnt make cycle" << endl;
 
                         /* path の追加と set_of_covered_terminals への追加 */
                         T.add_path(tmp_path);
@@ -275,11 +254,6 @@ Graph sketchLS(
                         if (T.is_connected() && ( set_of_covered_terminals.size() == terminals.size() ) ) {
                             return T;
                         }
-
-                        // debug
-                        // cout << "set_of_covered_terminals : ";
-                        // print_vector(set_of_covered_terminals);
-                        // cout << "Is T connected ? " << (T.is_connected() ? "True" : "False") << endl;
                     }
                 }  
             }
@@ -343,12 +317,8 @@ Graph partial_sketchLS(
         throw;
     }
 
-    SteinerTree.output_graph();
-
     // ST に余計な経路があれば削除
-    cout << "start removing unnecessary path" << endl;
     remove_unnecessary_path_from_ST(SteinerTree, terminals);
-    cout << "end removing unnecessary path" << endl;
 
     return SteinerTree;
 }
@@ -558,14 +528,12 @@ vector<vector<int> > get_branches_without_terminal(
         while (true) {
             // 次数が 3 以上のノードに当たれば終了. 後に追加
             if (adjacency_list.at(current).size() > 2) {
-                cout << "current degree is more than 3. break" << endl;
                 branch_without_terminal.push_back(current);
                 break;
             }
 
             // 途中でターミナルに当たれば終了. 追加はしない
             if ( terminal_set.count(current) ) {
-                cout << "hit terminal. break" << endl;
                 hit_terminal = true;
                 break;
             }
@@ -573,10 +541,7 @@ vector<vector<int> > get_branches_without_terminal(
             branch_without_terminal.push_back(current);
 
             // 次の頂点を決定
-            // cout << "current " << current << " is connected to";
-            // print_vector(adjacency_list.at(current));
             for (const int& node : adjacency_list.at(current) ) {
-                // cout << "node " << node << ", previous " << previous << endl;
                 if (node != previous) {
                     previous = current;
                     current = node;
@@ -616,7 +581,6 @@ vector<vector<int> > get_paths_leaf_to_terminal(
 
         while (true) {
             // 次数が 3 以上のノードに当たったら異常終了
-            cout << "current " << current << " degree " << adjacency_list.at(current).size() << endl;
             if (adjacency_list.at(current).size() > 2) {
                 cout << "Branch without terminal is left. It should be deleted before this." << endl;
                 throw;
@@ -625,7 +589,6 @@ vector<vector<int> > get_paths_leaf_to_terminal(
 
             // 途中でターミナルに当たれば終了. 後に追加
             if ( terminal_set.count(current) ) {
-                cout << "current is terminal break" << endl;
                 path_leaf_to_terminal.push_back(current);
                 break;
             }
@@ -670,16 +633,10 @@ void remove_unnecessary_path_from_ST(Graph& ST, vector<int> terminals)
     // 余計な経路タイプ 1 がなくなるまで削除
     while (true) {
         non_terminal_leaves = get_non_terminal_leaves(adjacency_list, terminal_set);
-        cout << "terminal "; print_vector(terminals);
-        cout << "non terminal leaves "; print_vector(non_terminal_leaves);
 
         // 余計な経路のタイプ 1 を特定
-        cout << "start finding branches without terminal" << endl;
-        cout << "SHOW GRAPH" << endl;
-        ST.output_graph();
         vector<vector<int> > branches_without_terminal
             = get_branches_without_terminal(adjacency_list, terminal_set, non_terminal_leaves);
-        cout << "end finding branches without terminal" << endl;
 
         // 見つからなければ終了
         if ( branches_without_terminal.empty() ) {
@@ -687,13 +644,9 @@ void remove_unnecessary_path_from_ST(Graph& ST, vector<int> terminals)
         }
 
         // 削除
-        cout << "start deleting branches without terminal" << endl;
         for (const vector<int>& branch_without_terminal : branches_without_terminal) {
-            cout << "Delete ";
-            print_vector(branch_without_terminal);
             ST.delete_path(branch_without_terminal);
         }
-        cout << "end deleting branches without terminal" << endl;
 
         non_terminal_leaves.clear();
     }
@@ -702,25 +655,14 @@ void remove_unnecessary_path_from_ST(Graph& ST, vector<int> terminals)
     non_terminal_leaves.clear();
     non_terminal_leaves = get_non_terminal_leaves(adjacency_list, terminal_set);
 
-
-    cout << "terminal "; print_vector(terminals);
-    cout << "non terminal leaves "; print_vector(non_terminal_leaves);
-
-
     // 余計な経路のタイプ 2 を特定
-    cout << "start finding paths leaf to terminal" << endl;
     vector<vector<int> > paths_leaf_to_terminal
         = get_paths_leaf_to_terminal(adjacency_list, terminal_set, non_terminal_leaves);
-    cout << "end finding paths leaf to terminal" << endl;
 
     // 削除
-    cout << "start deleting paths leaf to terminal" << endl;
     for (const vector<int>& path_leaf_to_terminal : paths_leaf_to_terminal) {
-        cout << "Delete ";
-        print_vector(path_leaf_to_terminal);
         ST.delete_path(path_leaf_to_terminal);
     }
-    cout << "end deleting paths leaf to terminal" << endl;
 }
 
 
