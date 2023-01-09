@@ -95,13 +95,15 @@ void write_terminals_to_exisiting_txt(string file_path, const vector<int>& termi
 
 void write_precomputation_time(
     std::string file_path,
-    const std::vector<std::pair<std::pair<double, double>, double> >& precomputation_time_list)
+    const std::vector<std::pair<std::pair<double, double>, pair<double, double> > >& precomputation_time_pair_list)
 {
     ofstream ofs(file_path);
-    for (const pair<pair<double, double>, double>& item : precomputation_time_list) {
+
+    for (const pair<pair<double, double>, pair<double, double> >& item : precomputation_time_pair_list) {
         double bottom_percentage = item.first.first * 100;
         double top_percentage = item.first.second * 100;
-        ofs << bottom_percentage << "% ~ " << top_percentage << "% : " << item.second << "ms" << endl;
+        ofs << bottom_percentage << "% ~ " << top_percentage << "% : "
+            << item.second.first << "ms " << item.second.second << "ms" << endl;
     }
 }
 

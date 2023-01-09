@@ -37,6 +37,16 @@ int main(int argc, char* argv[])
     cin >> graph_name;
 
 
+    /* 次数上位かBC上位のどちらを避けた sketch を使用するか選択 */
+    string sketch_mode;
+    cout << "select sketch mode (degree or bc) : ";
+    cin >> sketch_mode;
+    if (sketch_mode != "degree" && sketch_mode != "bc") {
+        cout << "please select degree or bc" << endl;
+        return 1;
+    }
+
+
     /* グラフのデータセットがあるか確認 */
     string dataset_path = "../dataset/" + graph_name + ".txt";
     if ( !fs::is_regular_file(dataset_path) ) { // なければ異常終了
@@ -53,8 +63,14 @@ int main(int argc, char* argv[])
 
     /* extended_sketches が生成済みか確認 */
     string result_dir_path =  "./" + graph_name;
-    string extended_sketches_path;
-    extended_sketches_path = result_dir_path + "/extended_sketches.txt";
+    if (sketch_mode == "degree") {
+        result_dir_path += "/degree";
+    }
+    if (sketch_mode == "bc") {
+        result_dir_path += "/bc";
+    }
+    
+    string extended_sketches_path = result_dir_path + "/extended_sketches.txt";
     if ( !fs::is_regular_file(extended_sketches_path) ) {
         cout << "There is no sketches.txt" << endl;
         return 1;
@@ -73,7 +89,7 @@ int main(int argc, char* argv[])
 
 
     /* ターミナルファイルが生成済みか確認 */
-    string terminals_path = result_dir_path + "/terminals.txt";
+    string terminals_path = "./" + graph_name + "/terminals.txt";
     if ( !fs::is_regular_file(terminals_path) ) {
         cout << "There is no terminals.txt" << endl;
         return 1;
@@ -90,13 +106,13 @@ int main(int argc, char* argv[])
     using Sketch = vector<vector<int> >;
     using Sketches = unordered_map<int, Sketch>;
     
-    // 避けて経路を生成できた bc 上位の個数の最大
-    int max_number_of_avoided_bc_top_nodes = get_max_number_of_avoided_bc_top_nodes(extended_sketches);
-    cout << "max number of avoided bc top nodes : " << max_number_of_avoided_bc_top_nodes << endl;
+    // 避けて経路を生成できた上位の個数の最大
+    int max_number_of_avoided_top_nodes = get_max_number_of_avoided_top_nodes(extended_sketches);
+    cout << "max number of avoided top nodes : " << max_number_of_avoided_top_nodes << endl;
     
-    vector<Sketches> list_of_avoided_bc_sketches
-        = get_list_of_sketches_from_extended_sketches(extended_sketches, max_number_of_avoided_bc_top_nodes);
-    cout << "Complete getting list of avoided bc sketches" << endl;
+    vector<Sketches> list_of_avoided_sketches
+        = get_list_of_sketches_from_extended_sketches(extended_sketches, max_number_of_avoided_top_nodes);
+    cout << "Complete getting list of avoided sketches" << endl;
 
 
     /* extended sketches を分割 */
@@ -109,12 +125,12 @@ int main(int argc, char* argv[])
     vector<int> node_list_sorted_by_degree = graph.get_node_list_sorted_by_degree();
 
     // list_of_sketches 内の Sketches を分割
-    // 外側の vector : 避けたbc上位ノードの個数             [original, 1, 2, 4, ...]
+    // 外側の vector : 避けた上位ノードの個数             [original, 1, 2, 4, ...]
     // 内側の vector : sketch の保持を限定したノードの範囲   [no division, 0-5, 5-10, ...]
     // 0-5 以降は partial sketches
     vector<vector<Sketches> > list_of_list_of_sketches;
 
-    for (const Sketches& sketches : list_of_avoided_bc_sketches) {
+    for (const Sketches& sketches : list_of_avoided_sketches) {
         vector<Sketches> tmp_list_of_sketches;
 
         // no division を最初に追加
@@ -136,8 +152,8 @@ int main(int argc, char* argv[])
 
 
     /* x軸の値のリストを取得 */
-    vector<string> x_list_for_avoided_bc_top_nodes
-        = get_x_list_for_avoided_bc_top_nodes(max_number_of_avoided_bc_top_nodes);
+    vector<string> x_list_for_avoided_top_nodes
+        = get_x_list_for_avoided_top_nodes(max_number_of_avoided_top_nodes);
 
     vector<string> x_list_for_limit_range
         = get_x_list_for_limit_range(length_to_divide_sketches);
@@ -145,28 +161,28 @@ int main(int argc, char* argv[])
 
 
     /* 評価の値のリスト */
-    // 外側の vector : 避けたbc上位ノードの個数             [original, 1, 2, 4, ...]
+    // 外側の vector : 避けた上位ノードの個数             [original, 1, 2, 4, ...]
     // 内側の vector : sketch の保持を限定したノードの範囲   [no division, 0-5, 5-10, ...]
     vector<vector<double> > list_of_list_of_overlap_ratio(
-        x_list_for_avoided_bc_top_nodes.size(),
+        x_list_for_avoided_top_nodes.size(),
         vector<double>(x_list_for_limit_range.size(), 0)
     );
     vector<vector<double> > list_of_list_of_ST_size(
-        x_list_for_avoided_bc_top_nodes.size(),
+        x_list_for_avoided_top_nodes.size(),
         vector<double>(x_list_for_limit_range.size(), 0)
     );
     vector<vector<double> > list_of_list_of_sum_of_degree(
-        x_list_for_avoided_bc_top_nodes.size(),
+        x_list_for_avoided_top_nodes.size(),
         vector<double>(x_list_for_limit_range.size(), 0)
     );
     vector<vector<double> > list_of_list_of_sum_of_bc(
-        x_list_for_avoided_bc_top_nodes.size(),
+        x_list_for_avoided_top_nodes.size(),
         vector<double>(x_list_for_limit_range.size(), 0)
     );
 
     // BC の読み込み
     unordered_map<int, double> bc_map;
-    string BC_txt_path = result_dir_path + "/BC.txt";
+    string BC_txt_path = "./" + graph_name + "/BC.txt";
     read_bc_from_txt_file(BC_txt_path, bc_map);
 
 
@@ -193,7 +209,7 @@ int main(int argc, char* argv[])
         ++count_terminals;
         cout << "set " << count_terminals << " starts" << endl;
 
-        // 外側の vector : 避けたbc上位ノードの個数             [original, 1, 2, 4, ...]
+        // 外側の vector : 避けた上位ノードの個数             [original, 1, 2, 4, ...]
         // 内側の vector : sketch の保持を限定したノードの範囲   [no division, 0-5, 5-10, ...]
         vector<vector<Graph> > list_of_list_of_ST;
 
@@ -250,7 +266,7 @@ int main(int argc, char* argv[])
 
         // ST 確認のため
         if (count_terminals % (list_of_terminals.size() / 10) == 0) {
-            // 最もbc上位を避けて, 次数下位に sketch をもたせた場合の ST をチェック
+            // 最も上位を避けて, 下位に sketch をもたせた場合の ST をチェック
             list_of_ST_for_checking.push_back(list_of_list_of_ST.back().back());
             list_of_terminals_for_checking.push_back(terminals);
         }
@@ -295,25 +311,25 @@ int main(int argc, char* argv[])
 
     write_overlap_ratio(
         overlap_ratio_path,
-        x_list_for_avoided_bc_top_nodes,
+        x_list_for_avoided_top_nodes,
         x_list_for_limit_range,
         list_of_list_of_overlap_ratio);
     
     write_ST_size(
         ST_size_path,
-        x_list_for_avoided_bc_top_nodes,
+        x_list_for_avoided_top_nodes,
         x_list_for_limit_range,
         list_of_list_of_ST_size);
 
     write_sum_of_degree(
         sum_of_degree_path,
-        x_list_for_avoided_bc_top_nodes,
+        x_list_for_avoided_top_nodes,
         x_list_for_limit_range,
         list_of_list_of_sum_of_degree);
 
     write_sum_of_bc(
         sum_of_bc_path,
-        x_list_for_avoided_bc_top_nodes,
+        x_list_for_avoided_top_nodes,
         x_list_for_limit_range,
         list_of_list_of_sum_of_bc);
 

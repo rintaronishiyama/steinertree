@@ -34,10 +34,16 @@ def draw_ST(graph_path) :
     plt.savefig(save_path)
     plt.close()
 
-dataset_name = input("enter dataset : ")
-ST_checking_dir_path = "./" + dataset_name + "/ST_checking"
+def draw_ST_in_dir(dir_path) :
+    files = os.listdir(dir_path)
+    for file in files :
+        if file[-3:] == "txt" :
+            draw_ST(dir_path + "/" + file)
 
-files = os.listdir(ST_checking_dir_path)
-for file in files :
-    if file[-3:] == "txt" :
-        draw_ST(ST_checking_dir_path + "/" + file)
+dataset_name = "ego-facebook"
+draw_ST_in_dir("./" + dataset_name + "/degree/ST_checking")
+draw_ST_in_dir("./" + dataset_name + "/bc/ST_checking")
+
+dataset_name = "large-facebook"
+draw_ST_in_dir("./" + dataset_name + "/degree/ST_checking")
+draw_ST_in_dir("./" + dataset_name + "/bc/ST_checking")

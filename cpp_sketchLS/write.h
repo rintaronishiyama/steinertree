@@ -26,7 +26,7 @@ void write_terminals_to_exisiting_txt(std::string file_path, const std::vector<i
 
 void write_precomputation_time(
     std::string file_path,
-    const std::vector<std::pair<std::pair<double, double>, double> >& precomputation_time_list);
+    const std::vector<std::pair<std::pair<double, double>, std::pair<double, double> > >& precomputation_time_pair_list);
 
 void write_overlap_ratio(
     std::string file_path,

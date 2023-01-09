@@ -9,22 +9,22 @@ using std::string;
 using std::to_string;
 
 // 避けた bc 上位ノードの個数に対する x の値のリストを返す
-vector<string> get_x_list_for_avoided_bc_top_nodes(
-    int max_number_of_avoided_bc_top_nodes)
+vector<string> get_x_list_for_avoided_top_nodes(
+    int max_number_of_avoided_top_nodes)
 {
-    vector<string> x_list_for_avoided_bc_top_nodes;
+    vector<string> x_list_for_avoided_top_nodes;
 
-    x_list_for_avoided_bc_top_nodes.push_back("Original");
+    x_list_for_avoided_top_nodes.push_back("Original");
     
-    if (max_number_of_avoided_bc_top_nodes != 0) {
+    if (max_number_of_avoided_top_nodes != 0) {
         int tmp = 1;
-        while (tmp <= max_number_of_avoided_bc_top_nodes) {
-            x_list_for_avoided_bc_top_nodes.push_back( to_string(tmp) );
+        while (tmp <= max_number_of_avoided_top_nodes) {
+            x_list_for_avoided_top_nodes.push_back( to_string(tmp) );
             tmp *= 2;
         }
     }
 
-    return x_list_for_avoided_bc_top_nodes;
+    return x_list_for_avoided_top_nodes;
 }
 
 

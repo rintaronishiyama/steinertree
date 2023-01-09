@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 class Graph;
 
@@ -18,7 +19,8 @@ std::vector<std::vector<std::vector<int> > > extended_sketch_index(
     const Graph& graph,
     int sketch_node,
     const std::vector<std::unordered_set<int> >& seed_node_sets,
-    const std::vector<std::unordered_set<int> >& bc_top_node_sets);
+    const std::vector<std::unordered_set<int> >& top_node_sets,
+    std::pair<double, double>& precomputation_time_list);
 
 
 /* 実行時計算 */
@@ -40,7 +42,7 @@ Graph partial_sketchLS(
 
 /* extended sketches を扱う関数 */
 
-int get_max_number_of_avoided_bc_top_nodes(
+int get_max_number_of_avoided_top_nodes(
     const std::unordered_map<int, std::vector<std::vector<std::vector<int> > > >& extended_sketches);
 
 std::unordered_map<int, std::vector<std::vector<int> > > get_sketches_from_extended_sketches(
@@ -49,7 +51,7 @@ std::unordered_map<int, std::vector<std::vector<int> > > get_sketches_from_exten
 
 std::vector<std::unordered_map<int, std::vector<std::vector<int> > > > get_list_of_sketches_from_extended_sketches(
     const std::unordered_map<int, std::vector<std::vector<std::vector<int> > > >& extended_sketches,
-    int max_number_of_avoided_bc_top_nodes);
+    int max_number_of_avoided_top_nodes);
 
 
 /* 下位関数 */

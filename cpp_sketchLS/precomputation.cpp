@@ -7,7 +7,6 @@
 #include <unordered_set>
 #include <iostream>
 #include <filesystem>
-#include <chrono>
 #include <utility>   // std::pair
 #include <math.h>    // std::ceil
 #include "graph.h"
@@ -36,7 +35,6 @@ using std::ceil;
 using std::sort;
 
 namespace fs = std::filesystem;
-namespace ch = std::chrono;
 
 int main(int argc, char* argv[])
 {
@@ -44,6 +42,16 @@ int main(int argc, char* argv[])
     string graph_name;
     cout << "Enter graph name : ";
     cin >> graph_name;
+
+
+    /* 次数上位かBC上位のどちらを避けた sketch 生成をするか選択 */
+    string sketch_mode;
+    cout << "select sketch mode (degree or bc) : ";
+    cin >> sketch_mode;
+    if (sketch_mode != "degree" && sketch_mode != "bc") {
+        cout << "please select degree or bc" << endl;
+        return 1;
+    }
 
 
     /* グラフのデータセットがあるか確認 */
@@ -70,40 +78,38 @@ int main(int argc, char* argv[])
     cout << "Complete deciding seed node sets" << endl;
 
 
-    /* 次数の降順にソートしたノードのリストを用意 */
-    vector<int> node_list_sorted_by_degree = graph.get_node_list_sorted_by_degree();
-    cout << "Complete sorting by degree" << endl;
-    
-
-    /* ノードリストを 0.1% 毎に区切る */
-    double length_to_divide = 0.001;
-    vector<vector<int> > divided_list_of_node_list_sorted_by_degree 
-        = divide_node_list(node_list_sorted_by_degree, length_to_divide);
-    cout << "Complete dividing node list" << endl;
-
-
-    /* BC.txtを読み込み */
-    string BC_txt_path = graph_name + "/BC.txt";
-    vector<int> node_list_sorted_by_bc;
-    read_node_list_sorted_by_bc_from_txt_file(BC_txt_path, node_list_sorted_by_bc);
-    cout << "Complete reading BC" << endl;
+    /* 次数 or BC の降順にソートしたノードのリストを用意 */
+    vector<int> node_list_sorted;
+    if (sketch_mode == "degree") {
+        node_list_sorted = graph.get_node_list_sorted_by_degree();
+    }
+    if (sketch_mode == "bc") {
+        string BC_txt_path = graph_name + "/BC.txt";
+        read_node_list_sorted_by_bc_from_txt_file(BC_txt_path, node_list_sorted);
+    }
+    cout << "Complete sorting node list" << endl;
 
 
-    /* BC上位ノード集合のリストを取得 */
-    int max_size_of_bc_top_node_set;
-    cout << "max size of bc top node set : ";
-    cin >> max_size_of_bc_top_node_set;
-    vector<unordered_set<int> > bc_top_node_sets
-        = get_node_sets_from_node_list(node_list_sorted_by_bc, max_size_of_bc_top_node_set); 
-    cout << "Complete getting BC top node sets" << endl;
+    /* 次数 or BC上位ノード集合のリストを取得 */
+    int max_size_of_top_node_set = 256;
+    vector<unordered_set<int> > top_node_sets
+        = get_node_sets_from_node_list(node_list_sorted, max_size_of_top_node_set); 
+    cout << "Complete getting top node sets" << endl;
 
 
     /* 次数の降順に sketch 生成 */
 
 
-    // 時間計測の準備
-    ch::system_clock::time_point start, end;
-    vector<pair<pair<double, double>, double> > precomputation_time_list; // < <範囲開始位置, 範囲終了位置>, 事前計算時間 >
+    /* 時間計測の準備 */
+    // ノードリストを 0.1% 毎に区切る
+    double length_to_divide = 0.001;
+    vector<vector<int> > divided_list_of_node_list_sorted
+        = divide_node_list(node_list_sorted, length_to_divide);
+    cout << "Complete dividing node list" << endl;
+
+
+    // < <範囲開始位置, 範囲終了位置>, <もとの事前計算時間, 提案手法の事前計算時間> >のリストを用意
+    vector<pair<pair<double, double>, pair<double, double> > > precomputation_time_pair_list;
     double bottom = 0;              // 範囲開始位置　
     double top = length_to_divide;  // 範囲終了位置
 
@@ -113,32 +119,37 @@ int main(int argc, char* argv[])
     using Extended_Sketches = unordered_map<int, Extended_Sketch>;
     
     Extended_Sketches extended_sketches;
-    for (const vector<int>& node_list : divided_list_of_node_list_sorted_by_degree) {
-
-
-        start = ch::system_clock::now(); // 計測開始
-
-
+    for (const vector<int>& node_list : divided_list_of_node_list_sorted) {
+        // 並列処理をしても時間を計測するために用意
+        vector<pair<double, double> > tmp_precomputation_time_pair_list(node_list.size());
+        
         // sketch 生成
         #pragma omp parallel for
         for (int i = 0; i < node_list.size(); ++i) {
-            extended_sketches[node_list[i]] = extended_sketch_index(graph, node_list[i], seed_node_sets, bc_top_node_sets);
+            pair<double, double> tmp_precomputation_time_pair(0, 0);
+            extended_sketches[node_list[i]] = extended_sketch_index(graph, node_list[i], seed_node_sets, top_node_sets, tmp_precomputation_time_pair);
+            tmp_precomputation_time_pair_list[i] = tmp_precomputation_time_pair;
+        }
+
+        // 避けた上位毎に事前計算時間を合計
+        pair<double, double> precomputation_time_pair(0, 0);
+
+        for (const pair<double, double>& precomputation_time_pair_ : tmp_precomputation_time_pair_list) {
+            precomputation_time_pair.first += precomputation_time_pair_.first;
+            precomputation_time_pair.second += precomputation_time_pair_.second;
         }
 
 
-        end = ch::system_clock::now();   // 計測終了
-        double precomputation_time = static_cast<double>(ch::duration_cast<ch::microseconds>(end - start).count() / 1000.0);
-        precomputation_time_list.push_back( { {bottom, top}, precomputation_time } );
+        precomputation_time_pair_list.push_back( { {bottom, top}, precomputation_time_pair } );
+        cout << top * 100 << "% done" << endl;
         bottom += length_to_divide;
         top += length_to_divide;
-
-
     }
     cout << "Complete generating extended sketches" << endl;
     
 
     /* パスの設定 */
-    string result_dir_path =  "./" + graph_name;
+    string result_dir_path =  "./" + graph_name + "/" + sketch_mode;
     string extended_sketches_path = result_dir_path + "/extended_sketches.txt";
 
 
@@ -150,7 +161,7 @@ int main(int argc, char* argv[])
 
     /* 事前計算時間の結果を保存 */
     string precomputation_time_path = result_dir_path + "/precomputation.txt";
-    write_precomputation_time(precomputation_time_path, precomputation_time_list);
+    write_precomputation_time(precomputation_time_path, precomputation_time_pair_list);
     cout << "Complete writing precomputation time" << endl;
 
 

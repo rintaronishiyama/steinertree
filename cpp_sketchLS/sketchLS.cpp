@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <queue>
 #include <utility>   // std::pair
+#include <chrono>
 #include "graph.h"
 
 using std::vector;
@@ -19,7 +20,7 @@ using std::endl;
 using std::queue;
 using std::count;
 
-
+namespace ch = std::chrono;
 
 
 
@@ -83,34 +84,61 @@ vector<vector<vector<int> > > extended_sketch_index(
     const Graph& graph,
     int sketch_node,
     const vector<unordered_set<int> >& seed_node_sets,
-    const vector<unordered_set<int> >& bc_top_node_sets)
+    const vector<unordered_set<int> >& top_node_sets,
+    pair<double, double>& precomputation_time_pair)
 {
     // sketch_node の sketch : [S1との経路リスト, S2との経路リスト, ..., Smとの経路リスト]
-    // Si との経路リスト : [最短経路(もともとの), bc上位1個を避けた経路, bc上位2個を避けた経路, ..., bc上位128個を避けた経路]
-    // bc上位を避けた経路は生成できない場合があるが, 生成できた経路までを保持
+    // Si との経路リスト : [最短経路(もともとの), 上位1個を避けた経路, 上位2個を避けた経路, ..., 上位128個を避けた経路]
+    // 上位を避けた経路は生成できない場合があるが, 生成できた経路までを保持
     // 最低でも最短経路は保持することを保証
     using Path_List = vector<vector<int> >;
     using Extended_Sketch = vector<Path_List>;
     Extended_Sketch extended_sketch;
 
+    
+    /* 時間計測の準備 */
+    ch::system_clock::time_point start, end;
+    vector<pair<double, double> > tmp_precomputation_time_pair_list;
+
+
     /* sketch_node と Si の経路リストを取得 */
     for (const unordered_set<int>& seed_node_set : seed_node_sets) {
         Path_List path_list;
 
-        // 最短経路追加
-        path_list.push_back(graph.bfs_to_node_set(sketch_node, seed_node_set));
+        pair<double, double> tmp_precomputation_time_pair;
 
-        // 可能な限りbc上位を避けた経路追加
-        for (const unordered_set<int>& bc_top_node_set : bc_top_node_sets) {
-            vector<int> path_avoiding_bc_top_node
-                = graph.bfs_to_node_set_avoiding_another_node_set(sketch_node, seed_node_set, bc_top_node_set);
-            if (path_avoiding_bc_top_node.empty()) {
+        // 最短経路追加
+        start = ch::system_clock::now();
+        path_list.push_back(graph.bfs_to_node_set(sketch_node, seed_node_set));
+        end   = ch::system_clock::now();
+        tmp_precomputation_time_pair.first  = static_cast<double>(ch::duration_cast<ch::microseconds>(end - start).count() / 1000.0);
+        tmp_precomputation_time_pair.second = static_cast<double>(ch::duration_cast<ch::microseconds>(end - start).count() / 1000.0);
+
+        // 可能な限り上位を避けた経路追加
+        for (const unordered_set<int>& top_node_set : top_node_sets) {
+            start = ch::system_clock::now();
+            vector<int> path_avoiding_top_node
+                = graph.bfs_to_node_set_avoiding_another_node_set(sketch_node, seed_node_set, top_node_set);
+            end   = ch::system_clock::now();
+            tmp_precomputation_time_pair.second += static_cast<double>(ch::duration_cast<ch::microseconds>(end - start).count() / 1000.0);
+            
+            if (path_avoiding_top_node.empty()) {
                 break;
             }
-            path_list.push_back(path_avoiding_bc_top_node);
+            
+            path_list.push_back(path_avoiding_top_node);
         }
 
         extended_sketch.push_back(path_list);
+
+        tmp_precomputation_time_pair_list.push_back(tmp_precomputation_time_pair);
+    }
+
+
+    // 各Si の事前計算時間を合計
+    for (const pair<double, double>& tmp_precomputation_time_pair : tmp_precomputation_time_pair_list) {
+        precomputation_time_pair.first  += tmp_precomputation_time_pair.first;
+        precomputation_time_pair.second += tmp_precomputation_time_pair.second;
     }
 
 
@@ -329,14 +357,14 @@ Graph partial_sketchLS(
 
 
 /* extended sketches を扱う関数 */
-// 避けて経路を生成できた bc 上位ノードの個数の最大値を返す
-int get_max_number_of_avoided_bc_top_nodes(
+// 避けて経路を生成できた上位ノードの個数の最大値を返す
+int get_max_number_of_avoided_top_nodes(
     const unordered_map<int, vector<vector<vector<int> > > >& extended_sketches)
 {
     using Path_List = vector<vector<int> >;
     using Extended_Sketch = vector<Path_List>;
 
-    int max_number_of_avoided_bc_top_nodes = 1;
+    int max_number_of_avoided_top_nodes = 1;
 
     int max_size_of_path_list = 0;
     for (const pair<int, Extended_Sketch>& item : extended_sketches) {
@@ -347,15 +375,15 @@ int get_max_number_of_avoided_bc_top_nodes(
         }
     }
 
-    if (max_size_of_path_list == 1) { // bc を避けた経路が 1 つもない場合
+    if (max_size_of_path_list == 1) { // 上位 を避けた経路が 1 つもない場合
         return 0;
     }
 
     for (int i = 0; i < (max_size_of_path_list - 2); ++i) {
-        max_number_of_avoided_bc_top_nodes *= 2;
+        max_number_of_avoided_top_nodes *= 2;
     }
 
-    return max_number_of_avoided_bc_top_nodes;
+    return max_number_of_avoided_top_nodes;
 }
 
 
@@ -393,10 +421,10 @@ unordered_map<int, vector<vector<int> > > get_sketches_from_extended_sketches(
 
 
 // extended sketches から sketches のリストを取得
-// sketches のリストは [オリジナル, bc1個抜き, bc2個抜き, bc4個抜き, ...] となっている
+// sketches のリストは [オリジナル, 上位1個抜き, 上位2個抜き, 上位4個抜き, ...] となっている
 vector<unordered_map<int, vector<vector<int> > > > get_list_of_sketches_from_extended_sketches(
     const unordered_map<int, vector<vector<vector<int> > > >& extended_sketches,
-    int max_number_of_avoided_bc_top_nodes)
+    int max_number_of_avoided_top_nodes)
 {
     using Sketch = vector<vector<int> >;
     using Sketches = unordered_map<int, Sketch>;
@@ -405,9 +433,9 @@ vector<unordered_map<int, vector<vector<int> > > > get_list_of_sketches_from_ext
 
     // path_list のサイズの最大値を計算
     int max_size_of_path_list = 1;
-    if (max_number_of_avoided_bc_top_nodes != 0) {
+    if (max_number_of_avoided_top_nodes != 0) {
         int tmp = 1;
-        while (tmp <= max_number_of_avoided_bc_top_nodes) {
+        while (tmp <= max_number_of_avoided_top_nodes) {
             tmp *= 2;
             ++max_size_of_path_list;
         }
