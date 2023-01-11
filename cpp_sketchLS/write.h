@@ -10,11 +10,11 @@ class Graph;
 
 void write_sketches(
     std::string file_path,
-    const std::unordered_map<int, std::vector<std::vector<int> > >& sketches);
+    const std::vector<std::vector<std::vector<int> > >& sketches);
 
 void write_extended_sketches(
     std::string file_path,
-    const std::unordered_map<int, std::vector<std::vector<std::vector<int> > > >& extended_sketches);
+    const std::vector<std::vector<std::vector<std::vector<int> > > >& extended_sketches);
 
 void write_list_of_terminals(
     std::string file_path,
@@ -26,7 +26,7 @@ void write_terminals_to_exisiting_txt(std::string file_path, const std::vector<i
 
 void write_precomputation_time(
     std::string file_path,
-    const std::vector<std::pair<std::pair<double, double>, std::pair<double, double> > >& precomputation_time_pair_list);
+    const std::vector<std::pair<std::string, double> >& precomputation_time_list);
 
 void write_overlap_ratio(
     std::string file_path,

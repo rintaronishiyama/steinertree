@@ -21,14 +21,16 @@ std::vector<std::vector<std::vector<int> > > extended_sketch_index(
     const std::vector<std::unordered_set<int> >& seed_node_sets,
     const std::vector<std::unordered_set<int> >& top_node_sets);
 
-std::unordered_map<int, std::vector<std::vector<int> > > generate_sketches(
-    const Graph& graph,
-    const std::vector<std::unordered_set<int> >& seed_node_sets);
-
-std::unordered_map<int, std::vector<std::vector<std::vector<int> > > > generate_extended_sketches(
+void generate_sketches(
     const Graph& graph,
     const std::vector<std::unordered_set<int> >& seed_node_sets,
-    const std::vector<std::unordered_set<int> >& top_node_sets);
+    std::vector<std::vector<std::vector<int> > >& sketches);
+
+void generate_extended_sketches(
+    const Graph& graph,
+    const std::vector<std::unordered_set<int> >& seed_node_sets,
+    const std::vector<std::unordered_set<int> >& top_node_sets,
+    std::vector<std::vector<std::vector<std::vector<int> > > >& extended_sketches);
 
 /* 実行時計算 */
 

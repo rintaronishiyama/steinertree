@@ -14,12 +14,13 @@ using std::pair;
 
 void write_sketches(
     string file_path,
-    const unordered_map<int, vector<vector<int> > >& sketches)
+    const vector<vector<vector<int> > >& sketches)
 {
     ofstream ofs(file_path);
-    for (const pair<int, vector<vector<int> > >& item : sketches) {
-        ofs << item.first << " : ";
-        for (vector<int> shortest_path_for_seed_set : item.second) {
+
+    for (int i = 0; i < sketches.size(); ++i) {
+        ofs << i << " : ";
+        for (const vector<int>& shortest_path_for_seed_set : sketches.at(i)) {
             for (int node : shortest_path_for_seed_set) {
                 ofs << node << " ";
             }
@@ -33,12 +34,13 @@ void write_sketches(
 
 void write_extended_sketches(
     string file_path,
-    const unordered_map<int, vector<vector<vector<int> > > >& extended_sketches)
+    const vector<vector<vector<vector<int> > > >& extended_sketches)
 {
     ofstream ofs(file_path);
-    for (const pair<int, vector<vector<vector<int> > > >& item : extended_sketches) {
-        ofs << item.first << " : ";
-        for (const vector<vector<int> >& path_list_for_seed_set : item.second) {
+
+    for (int i = 0; i < extended_sketches.size(); ++i) {
+        ofs << i << " : ";
+        for (const vector<vector<int> >& path_list_for_seed_set : extended_sketches.at(i)) {
             for (const vector<int>& path : path_list_for_seed_set) {
                 for (const int& node : path) {
                     ofs << node << " ";
@@ -94,16 +96,13 @@ void write_terminals_to_exisiting_txt(string file_path, const vector<int>& termi
 }
 
 void write_precomputation_time(
-    std::string file_path,
-    const std::vector<std::pair<std::pair<double, double>, pair<double, double> > >& precomputation_time_pair_list)
+    string file_path,
+    const vector<pair<string, double> >& precomputation_time_pair_list)
 {
     ofstream ofs(file_path);
 
-    for (const pair<pair<double, double>, pair<double, double> >& item : precomputation_time_pair_list) {
-        double bottom_percentage = item.first.first * 100;
-        double top_percentage = item.first.second * 100;
-        ofs << bottom_percentage << "% ~ " << top_percentage << "% : "
-            << item.second.first << "ms " << item.second.second << "ms" << endl;
+    for (const pair<string, double>& item : precomputation_time_pair_list) {
+        ofs << item.first << " : " << item.second << "ms" << endl;
     }
 }
 
