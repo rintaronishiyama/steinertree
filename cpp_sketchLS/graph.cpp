@@ -360,6 +360,80 @@ vector<int> Graph::find_shortest_path(int source, int target) const {
     return this->bfs_to_node_set(source, node_set);
 }
 
+// ソースノード集合を最初にqueueに入れた状態でBFS
+// 一つ前のノードを記録したpreを返す 一つ前のノードがなければ-1
+// 必然的にソースノード集合のノードのみ pre が -1 になる
+vector<int> Graph::bfs_from_source_node_set(
+    const unordered_set<int>& source_node_set) const
+{
+    int n = this->get_number_of_nodes();
+    vector<int> dist(n, 1e9);
+    vector<int> pre(n, -1); // 経路として見たとき一つ前の頂点
+    queue<int> que;
+
+    // ソースノード集合を全てqueueに入れる
+    for (const int& source_node : source_node_set) {
+        que.push(source_node);
+        dist[source_node] = 0;
+    }
+
+
+    while (!que.empty()) {
+        // 現在頂点
+        int from = que.front();
+        que.pop();
+
+        for (const int& to : this->get_adjacency_list().at(from)) { // from の隣接頂点を見ていく
+            if (dist[to] != 1e9) continue; // 訪問済みなら飛ばす
+
+            dist[to] = dist[from] + 1;     // 現在頂点から+1した距離を記録
+            pre[to] = from;                // 現在頂点を1つ前の頂点として記録
+
+            que.push(to);
+        }
+    }
+
+    return pre;
+}
+
+
+// ソースノード集合を最初にqueueに入れた状態でBFS
+// 一つ前のノードを記録したpreを返す 一つ前のノードがなければ -2, ソースノードのpreは -1
+vector<int> Graph::bfs_from_source_node_set_avoiding_another_node_set(
+    const unordered_set<int>& source_node_set,
+    const unordered_set<int>& node_set_to_avoid) const
+{
+    int n = this->get_number_of_nodes();
+    vector<int> dist(n, 1e9);
+    vector<int> pre(n, -2); // 経路として見たとき一つ前の頂点
+    queue<int> que;
+
+    // ソースノード集合を全てqueueに入れる
+    for (const int& source_node : source_node_set) {
+        que.push(source_node);
+        dist[source_node] = 0;
+        pre[source_node] = -1;
+    }
+
+
+    while (!que.empty()) {
+        // 現在頂点
+        int from = que.front();
+        que.pop();
+
+        for (const int& to : this->get_adjacency_list().at(from)) { // from の隣接頂点を見ていく
+            if (dist[to] != 1e9) continue; // 訪問済みなら飛ばす
+            if ( node_set_to_avoid.count(to) ) continue;  // 避けるノード集合にあれば飛ばす
+
+            dist[to] = dist[from] + 1;     // 現在頂点から+1した距離を記録
+            pre[to] = from;                // 現在頂点を1つ前の頂点として記録
+
+            que.push(to);
+        }
+    }
+
+    return pre;
+}
 
 
 /* グラフの出力 */

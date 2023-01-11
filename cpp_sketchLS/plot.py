@@ -84,7 +84,10 @@ def plot_sum_of_degree(data_path) :
         plt.plot(x[key], y[key], label=key)
     
     plt.grid()
-    plt.legend(loc=0, title="top bc nodes")
+    if data_path.count("degree") :
+        plt.legend(loc=0, title="top degree nodes")
+    if data_path.count("bc") :
+        plt.legend(loc=0, title="top bc nodes")
     
     plt.title(data_path[2:-4])
     plt.xticks(rotation=45)
@@ -115,7 +118,10 @@ def plot_sum_of_bc(data_path) :
         plt.plot(x[key], y[key], label=key)
     
     plt.grid()
-    plt.legend(loc=0, title="top bc nodes")
+    if data_path.count("degree") :
+        plt.legend(loc=0, title="top degree nodes")
+    if data_path.count("bc") :
+        plt.legend(loc=0, title="top bc nodes")
     
     plt.title(data_path[2:-4])
     plt.xticks(rotation=45)

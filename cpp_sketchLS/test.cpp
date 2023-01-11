@@ -7,18 +7,22 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <map>
+#include <chrono>
 
 using namespace std;
+namespace ch = std::chrono;
 
 
 int main(int argc, char* argv[])
 {
-    double a = 0.05;
-    int b = 5;
-    string c = to_string(b) + "cc";
+    ch::system_clock::time_point start, end;
+    start = ch::system_clock::now();
+    #pragma omp parallel for
+    for (int i = 0; i < 1000000; ++i) {
+        cout << "aa is empty" << endl;
+    }
+    end = ch::system_clock::now();
 
-    cout << a * 101 << endl;
-    cout << to_string( a * 100 ) << endl;
-    cout << to_string( static_cast<int>(a * 100) ) << endl;
-    cout << c << endl;
+    auto time = ch::duration_cast<ch::milliseconds>(end - start).count();
+    cout << time << endl;
 }

@@ -40,6 +40,10 @@ class Graph{
             const std::unordered_set<int>& node_set,
             const std::unordered_set<int>& node_set_to_avoid) const;
         std::vector<int> find_shortest_path(int source, int target) const;
+        std::vector<int> bfs_from_source_node_set(const std::unordered_set<int>& source_node_set) const;
+        std::vector<int> bfs_from_source_node_set_avoiding_another_node_set(
+            const std::unordered_set<int>& source_node_set,
+            const std::unordered_set<int>& node_set_to_avoid) const;
 
         // グラフの出力
         void output_graph() const;

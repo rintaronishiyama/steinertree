@@ -5,7 +5,6 @@
 #include <unordered_set>
 #include <queue>
 #include <utility>   // std::pair
-#include <chrono>
 #include "graph.h"
 
 using std::vector;
@@ -19,8 +18,6 @@ using std::cout;
 using std::endl;
 using std::queue;
 using std::count;
-
-namespace ch = std::chrono;
 
 
 
@@ -56,7 +53,13 @@ void remove_unnecessary_path_from_ST(Graph& ST, vector<int> terminals);
 
 void add_edges_til_terminal_connects_to_ST(Graph& ST, const vector<int>& path);
 
+vector<int> get_shortest_path_from_SPT(
+    const vector<int>& shortest_path_tree,
+    const int& source);
 
+vector<int> get_avoided_path_from_APT(
+    const vector<int>& avoided_path_tree,
+    const int& source);
 
 
 /* 事前計算 */
@@ -78,14 +81,13 @@ vector<vector<int> > sketch_index(
     return sketch;
 }
 
-// extended_sketch 生成
-// (extended_sketchの詳細は関数内に記載)
+
+// extended sketch 生成 (関数内での時間計測なしver)
 vector<vector<vector<int> > > extended_sketch_index(
     const Graph& graph,
     int sketch_node,
     const vector<unordered_set<int> >& seed_node_sets,
-    const vector<unordered_set<int> >& top_node_sets,
-    pair<double, double>& precomputation_time_pair)
+    const vector<unordered_set<int> >& top_node_sets)
 {
     // sketch_node の sketch : [S1との経路リスト, S2との経路リスト, ..., Smとの経路リスト]
     // Si との経路リスト : [最短経路(もともとの), 上位1個を避けた経路, 上位2個を避けた経路, ..., 上位128個を避けた経路]
@@ -95,32 +97,18 @@ vector<vector<vector<int> > > extended_sketch_index(
     using Extended_Sketch = vector<Path_List>;
     Extended_Sketch extended_sketch;
 
-    
-    /* 時間計測の準備 */
-    ch::system_clock::time_point start, end;
-    vector<pair<double, double> > tmp_precomputation_time_pair_list;
-
 
     /* sketch_node と Si の経路リストを取得 */
     for (const unordered_set<int>& seed_node_set : seed_node_sets) {
         Path_List path_list;
 
-        pair<double, double> tmp_precomputation_time_pair;
-
         // 最短経路追加
-        start = ch::system_clock::now();
         path_list.push_back(graph.bfs_to_node_set(sketch_node, seed_node_set));
-        end   = ch::system_clock::now();
-        tmp_precomputation_time_pair.first  = static_cast<double>(ch::duration_cast<ch::microseconds>(end - start).count() / 1000.0);
-        tmp_precomputation_time_pair.second = static_cast<double>(ch::duration_cast<ch::microseconds>(end - start).count() / 1000.0);
 
         // 可能な限り上位を避けた経路追加
         for (const unordered_set<int>& top_node_set : top_node_sets) {
-            start = ch::system_clock::now();
             vector<int> path_avoiding_top_node
                 = graph.bfs_to_node_set_avoiding_another_node_set(sketch_node, seed_node_set, top_node_set);
-            end   = ch::system_clock::now();
-            tmp_precomputation_time_pair.second += static_cast<double>(ch::duration_cast<ch::microseconds>(end - start).count() / 1000.0);
             
             if (path_avoiding_top_node.empty()) {
                 break;
@@ -130,20 +118,134 @@ vector<vector<vector<int> > > extended_sketch_index(
         }
 
         extended_sketch.push_back(path_list);
-
-        tmp_precomputation_time_pair_list.push_back(tmp_precomputation_time_pair);
-    }
-
-
-    // 各Si の事前計算時間を合計
-    for (const pair<double, double>& tmp_precomputation_time_pair : tmp_precomputation_time_pair_list) {
-        precomputation_time_pair.first  += tmp_precomputation_time_pair.first;
-        precomputation_time_pair.second += tmp_precomputation_time_pair.second;
     }
 
 
     return extended_sketch;
 }
+
+
+
+// 各Si毎に最短路木を生成
+// 最短路木を基にグラフ上の各ノードに対して, Sketch を生成
+unordered_map<int, vector<vector<int> > > generate_sketches(
+    const Graph& graph,
+    const vector<unordered_set<int> >& seed_node_sets)
+{
+    using Sketch = vector<vector<int> >;
+    using Sketches = unordered_map<int, Sketch>;
+
+    Sketches sketches;
+
+    // 最短路木のリストを用意 [S1の最短路木, S2の最短路木, ..., Smの最短路木]
+    vector<vector<int> > shortest_path_tree_list(seed_node_sets.size());
+
+    #pragma omp parallel for
+    for (int i = 0; i < seed_node_sets.size(); ++i) {
+        vector<int> shortest_path_tree = graph.bfs_from_source_node_set(seed_node_sets.at(i));
+
+        shortest_path_tree_list[i] = shortest_path_tree;
+    }
+
+    // 各ノードに対して Sketch を生成
+    // 具体的には, 各シードノード集合の最短路木をたどってシードノード集合までの最短路を取得
+    vector<int> node_list = graph.get_node_list();
+
+    #pragma omp parallel for
+    for (int i = 0; i < node_list.size(); ++i) {
+        Sketch sketch;
+        
+        for (const vector<int>& shortest_path_tree : shortest_path_tree_list) {
+            vector<int> shortest_path_to_seed_node_set
+                = get_shortest_path_from_SPT(shortest_path_tree, node_list.at(i));
+
+            sketch.push_back(shortest_path_to_seed_node_set);
+        }
+
+        sketches[node_list.at(i)] = sketch;
+    }
+
+    return sketches;
+}
+
+
+
+
+// 各Si毎に 最短路木と avoided_path_tree (上位ノードの集合の数だけ) を生成
+// それらを基に extended_sketch を生成
+unordered_map<int, vector<vector<vector<int> > > > generate_extended_sketches(
+    const Graph& graph,
+    const vector<unordered_set<int> >& seed_node_sets,
+    const vector<unordered_set<int> >& top_node_sets)
+{
+    using Path_List = vector<vector<int> >;     // Si の経路リスト = [最短経路, 上位1個避けた経路, ...]
+    using Extended_Sketch = vector<Path_List>;  // Extended_Sketch = [S1の経路リスト, S2の経路リスト, ...]
+    using Extended_Sketches = unordered_map<int, Extended_Sketch>;
+    
+    Extended_Sketches extended_sketches;
+
+    // path_tree のリストをシードノード集合毎に用意
+    // 外側のvector S1, S2, ...
+    // 内側のvector 最短路, 上位1個避けた経路, ...
+    vector<vector<vector<int> > > list_of_list_of_path_tree(seed_node_sets.size());
+
+    #pragma omp parallel for
+    for (int i = 0; i < seed_node_sets.size(); ++i) {
+        vector<vector<int> > path_tree_list;
+
+        // 最短路木を追加
+        path_tree_list.push_back(graph.bfs_from_source_node_set(seed_node_sets.at(i)));
+
+        // avoided_path_tree を追加
+        for (const unordered_set<int>& top_node_set : top_node_sets) {
+            path_tree_list.push_back(
+                graph.bfs_from_source_node_set_avoiding_another_node_set(
+                    seed_node_sets.at(i),
+                    top_node_set)
+            );
+        }
+
+        list_of_list_of_path_tree[i] = path_tree_list;
+    }
+
+
+    // 各ノードに対して extended_sketch を生成
+    vector<int> node_list = graph.get_node_list();
+
+    #pragma omp parallel for
+    for (int i = 0; i < node_list.size(); ++i) {
+        Extended_Sketch extended_sketch;
+
+        for (const vector<vector<int> >& path_tree_list : list_of_list_of_path_tree) {
+            Path_List path_list;
+
+            // 最短路を追加
+            path_list.push_back(get_shortest_path_from_SPT(path_tree_list.at(0), node_list.at(i)));
+
+            // avoided_path を追加
+            for (int i = 1; i < path_tree_list.size(); ++i) {
+                vector<int> avoided_path = get_avoided_path_from_APT(path_tree_list.at(i), node_list.at(i));
+
+                // avoided_path が空vector, 即ち避けた経路が見つからなかった場合
+                if ( avoided_path.empty() ) {
+                    break;
+                }
+
+                // 見つかれば追加
+                path_list.push_back(avoided_path);
+            }
+
+            extended_sketch.push_back(path_list);
+        }
+
+        extended_sketches[node_list.at(i)] = extended_sketch;
+    }
+
+    return extended_sketches;
+}
+
+
+
 
 
 
@@ -517,7 +619,7 @@ bool has_cycle_for_path(const vector<int>& path)
 // 非ターミナルの葉のリストを返す
 vector<int> get_non_terminal_leaves (
     const unordered_map<int, vector<int> >& adjacency_list,
-    const unordered_set<int> terminal_set)
+    const unordered_set<int>& terminal_set)
 {
     vector<int> non_terminal_leaves;
 
@@ -535,7 +637,7 @@ vector<int> get_non_terminal_leaves (
 // ターミナルを含まない枝のリストを返す
 vector<vector<int> > get_branches_without_terminal(
     const unordered_map<int, vector<int> >& adjacency_list,
-    const unordered_set<int> terminal_set,
+    const unordered_set<int>& terminal_set,
     const vector<int>& non_terminal_leaves)
 {
     vector<vector<int> > branches_without_terminal;
@@ -592,7 +694,7 @@ vector<vector<int> > get_branches_without_terminal(
 // 葉からターミナルまでのパスのリストを返す
 vector<vector<int> > get_paths_leaf_to_terminal(
     const unordered_map<int, vector<int> >& adjacency_list,
-    const unordered_set<int> terminal_set,
+    const unordered_set<int>& terminal_set,
     const vector<int>& non_terminal_leaves)
 {
     vector<vector<int> > paths_leaf_to_terminal;
@@ -712,4 +814,54 @@ void add_edges_til_terminal_connects_to_ST(Graph& ST, const vector<int>& path){
             return;
         }
     }
+}
+
+
+// 最短路木 (SPT) から最短路を取得
+vector<int> get_shortest_path_from_SPT(
+    const vector<int>& shortest_path_tree,
+    const int& source)
+{
+    vector<int> shortest_path;
+
+    // sourceのpreが -1 のとき, 即ちsourceがこのSPT生成時のシードノードであるとき
+    if (shortest_path_tree.at(source) == -1) {
+        shortest_path.push_back(source);
+        return shortest_path;
+    }
+
+    // sourceからシードノード集合まで辿る
+    for (int i = source; i != -1; i = shortest_path_tree.at(i) ) {
+        shortest_path.push_back(i);
+    }
+
+    return shortest_path;
+}
+
+
+// avoided_path_tree (APT) から上位ノードを避けた経路を取得
+// 取得できない場合は空のvectorを返す
+vector<int> get_avoided_path_from_APT(
+    const vector<int>& avoided_path_tree,
+    const int& source)
+{
+    vector<int> avoided_path;
+
+    // sourceのpreが -1 のとき, 即ちsourceがこのSPT生成時のシードノードであるとき
+    if (avoided_path_tree.at(source) == -1) {
+        avoided_path.push_back(source);
+        return avoided_path;
+    }
+
+    // sourceのpreが -2 のとき, 即ちシードノード集合への上位ノードを避けた経路がなかった場合
+    if (avoided_path_tree.at(source) == -2) {
+        return avoided_path;
+    }
+
+    // sourceからシードノード集合まで辿る
+    for (int i = source; i != -1; i = avoided_path_tree.at(i) ) {
+        avoided_path.push_back(i);
+    }
+
+    return avoided_path;
 }
