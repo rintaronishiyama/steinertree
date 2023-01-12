@@ -58,6 +58,23 @@ int main(int argc, char* argv[])
     }
 
 
+    /* 事前計算時間の比較をするか確認 */
+    bool compare_precomputation_time;
+    string ans;
+    cout << "Compare precomputation time? (y or n)";
+    cin >> ans;
+    if (ans == "y") {
+        compare_precomputation_time = true;
+    }
+    else if (ans == "n") {
+        compare_precomputation_time = false;
+    }
+    else {
+        cout << "y or n !!!!" << endl;
+        return 1;
+    }
+
+
     /* グラフのデータセットがあるか確認 */
     string dataset_path = "../dataset/" + graph_name + ".txt";
     if ( !fs::is_regular_file(dataset_path) ) { // なければ異常終了
@@ -114,36 +131,38 @@ int main(int argc, char* argv[])
     // n の準備
     int n = graph.get_number_of_nodes();
 
-    // 型エイリアス
-    using Sketch = vector<vector<int> >;
-    using Sketches = vector<Sketch>;    // index の値がそのままノードid
 
-    // ver1
-    Sketches sketches1(n);
-    
-    start = ch::system_clock::now();
-    #pragma omp parallel for
-    for (int i = 0; i < node_list.size(); ++i) {
-        sketches1[node_list.at(i)] = sketch_index(graph, node_list.at(i), seed_node_sets);
+    if (compare_precomputation_time) {
+        // 型エイリアス
+        using Sketch = vector<vector<int> >;
+        using Sketches = vector<Sketch>;    // index の値がそのままノードid
+
+        // ver1
+        Sketches sketches1(n);
+        
+        start = ch::system_clock::now();
+        #pragma omp parallel for
+        for (int i = 0; i < node_list.size(); ++i) {
+            sketches1[node_list.at(i)] = sketch_index(graph, node_list.at(i), seed_node_sets);
+        }
+        end   = ch::system_clock::now();
+        
+        cout << "sketch ver 1 end" << endl;
+        elapsed = static_cast<double>(ch::duration_cast<ch::milliseconds>(end - start).count());
+        precomputation_time_list.push_back({"sketch ver1", elapsed});
+
+
+        // ver2
+        Sketches sketches2(n);
+
+        start = ch::system_clock::now();
+        generate_sketches(graph, seed_node_sets, sketches2);
+        end   = ch::system_clock::now();
+        
+        cout << "sketch ver 2 end" << endl;
+        elapsed = static_cast<double>(ch::duration_cast<ch::milliseconds>(end - start).count());
+        precomputation_time_list.push_back({"sketch ver2", elapsed});
     }
-    end   = ch::system_clock::now();
-    
-    cout << "sketch ver 1 end" << endl;
-    elapsed = static_cast<double>(ch::duration_cast<ch::milliseconds>(end - start).count());
-    precomputation_time_list.push_back({"sketch ver1", elapsed});
-
-
-    // ver2
-    Sketches sketches2(n);
-
-    start = ch::system_clock::now();
-    generate_sketches(graph, seed_node_sets, sketches2);
-    end   = ch::system_clock::now();
-    
-    cout << "sketch ver 2 end" << endl;
-    elapsed = static_cast<double>(ch::duration_cast<ch::milliseconds>(end - start).count());
-    precomputation_time_list.push_back({"sketch ver2", elapsed});
-
 
     /* extended sketches 生成 */
     // 型エイリアス
@@ -151,20 +170,21 @@ int main(int argc, char* argv[])
     using Extended_Sketch = vector<Path_List>;
     using Extended_Sketches = vector<Extended_Sketch>; // index の値がそのままノードid
 
-    // ver1
-    Extended_Sketches extended_sketches1(n);
-    
-    start = ch::system_clock::now();
-    #pragma omp parallel for
-    for (int i = 0; i < node_list.size(); ++i) {
-        extended_sketches1[node_list.at(i)] = extended_sketch_index(graph, node_list.at(i), seed_node_sets, top_node_sets);
+    if (compare_precomputation_time) {
+        // ver1
+        Extended_Sketches extended_sketches1(n);
+        
+        start = ch::system_clock::now();
+        #pragma omp parallel for
+        for (int i = 0; i < node_list.size(); ++i) {
+            extended_sketches1[node_list.at(i)] = extended_sketch_index(graph, node_list.at(i), seed_node_sets, top_node_sets);
+        }
+        end   = ch::system_clock::now();
+
+        cout << "extended sketch ver 1 end" << endl;
+        elapsed = static_cast<double>(ch::duration_cast<ch::milliseconds>(end - start).count());
+        precomputation_time_list.push_back({"extended sketch ver1", elapsed});
     }
-    end   = ch::system_clock::now();
-
-    cout << "extended sketch ver 1 end" << endl;
-    elapsed = static_cast<double>(ch::duration_cast<ch::milliseconds>(end - start).count());
-    precomputation_time_list.push_back({"extended sketch ver1", elapsed});
-
 
     // ver2
     Extended_Sketches extended_sketches2(n);
@@ -176,6 +196,7 @@ int main(int argc, char* argv[])
     cout << "extended sketch ver 2 end" << endl;
     elapsed = static_cast<double>(ch::duration_cast<ch::milliseconds>(end - start).count());
     precomputation_time_list.push_back({"extended sketch ver2", elapsed});
+
 
     /* 結果を保存するディレクトリを用意 */
     string result_dir_path =  "./" + graph_name + "/" + sketch_mode;

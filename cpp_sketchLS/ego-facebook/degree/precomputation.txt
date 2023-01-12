@@ -1,4 +1,4 @@
-sketch ver1 : 512ms
-sketch ver2 : 51ms
-extended sketch ver1 : 13480ms
-extended sketch ver2 : 114ms
+sketch ver1 : 416ms
+sketch ver2 : 57ms
+extended sketch ver1 : 10247ms
+extended sketch ver2 : 111ms
