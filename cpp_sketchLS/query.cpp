@@ -15,6 +15,7 @@ using std::cout;
 using std::cin;
 using std::endl;
 using std::string;
+using std::to_string;
 
 namespace fs = std::filesystem;
 
@@ -39,29 +40,39 @@ int main(int argc, char* argv[]) {
     cout << "Complete reading graph" << endl;
 
 
-    /* ターミナル数の決定 */    
-    int number_of_terminals;
-    cout << "number of terminals : ";
-    cin >> number_of_terminals;
+    /* ターミナル数の決定 */
+    int min_num_of_terminals = 3;
+    int max_num_of_terminals = 7;
 
 
     /* 試行回数の決定 */
-    int number_of_trials;
-    cout << "number of trials : ";
-    cin >> number_of_trials;
+    int number_of_trials = 1000;
 
 
     /* terminals のリストを作成 */
-    vector<vector<int> > list_of_terminals;
-    for (int i = 0; i < number_of_trials; ++i) {
-        vector<int> terminals = decide_terminals(graph, number_of_terminals);
+    vector<vector<vector<int> > > list_of_list_of_terminals;
+    for (int i = min_num_of_terminals; i <= max_num_of_terminals; ++i) {
+        vector<vector<int> > list_of_terminals;
+
+        for (int j = 0; j < number_of_trials; ++j) {
+        vector<int> terminals = decide_terminals(graph, i);
         list_of_terminals.push_back(terminals);
+        }
+
+        list_of_list_of_terminals.push_back(list_of_terminals);
     }
 
 
     /* terminals のリストを書き込み */
-    string terminals_path = graph_name + "/terminals.txt";
-    write_list_of_terminals(terminals_path, list_of_terminals);
+    vector<string> terminals_path_list;
+    for (int i = min_num_of_terminals; i <= max_num_of_terminals; ++i) {
+        string terminals_path = graph_name + "/terminals" + to_string(i) + ".txt";
+        terminals_path_list.push_back(terminals_path);
+    }
+
+    for (int i = 0; i < list_of_list_of_terminals.size(); ++i) {
+        write_list_of_terminals(terminals_path_list[i], list_of_list_of_terminals[i]);
+    }
 
     return 0;
 }

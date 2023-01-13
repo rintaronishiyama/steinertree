@@ -37,16 +37,6 @@ int main(int argc, char* argv[])
     cin >> graph_name;
 
 
-    /* 次数上位かBC上位のどちらを避けた sketch を使用するか選択 */
-    string sketch_mode;
-    cout << "select sketch mode (degree or bc) : ";
-    cin >> sketch_mode;
-    if (sketch_mode != "degree" && sketch_mode != "bc") {
-        cout << "please select degree or bc" << endl;
-        return 1;
-    }
-
-
     /* グラフのデータセットがあるか確認 */
     string dataset_path = "../dataset/" + graph_name + ".txt";
     if ( !fs::is_regular_file(dataset_path) ) { // なければ異常終了
@@ -62,17 +52,25 @@ int main(int argc, char* argv[])
     
 
     /* extended_sketches が生成済みか確認 */
-    string result_dir_path =  "./" + graph_name;
-    if (sketch_mode == "degree") {
-        result_dir_path += "/degree";
+    string result_dir_path = "./" + graph_name;
+    string dc_result_dir_path = "./" + graph_name + "/dc";
+    string bc_result_dir_path = "./" + graph_name + "/bc";
+    string cc_result_dir_path = "./" + graph_name + "/cc";
+
+    string dc_extended_sketches_path = dc_result_dir_path + "/extended_sketches.txt";
+    string bc_extended_sketches_path = bc_result_dir_path + "/extended_sketches.txt";
+    string cc_extended_sketches_path = cc_result_dir_path + "/extended_sketches.txt";
+
+    if ( !fs::is_regular_file(dc_extended_sketches_path) ) {
+        cout << "There is no extended_sketches.txt for dc" << endl;
+        return 1;
     }
-    if (sketch_mode == "bc") {
-        result_dir_path += "/bc";
+    if ( !fs::is_regular_file(bc_extended_sketches_path) ) {
+        cout << "There is no extended_sketches.txt for bc" << endl;
+        return 1;
     }
-    
-    string extended_sketches_path = result_dir_path + "/extended_sketches.txt";
-    if ( !fs::is_regular_file(extended_sketches_path) ) {
-        cout << "There is no sketches.txt" << endl;
+    if ( !fs::is_regular_file(cc_extended_sketches_path) ) {
+        cout << "There is no extended_sketches.txt for cc" << endl;
         return 1;
     }
 
@@ -83,275 +81,346 @@ int main(int argc, char* argv[])
     using Extended_Sketch = vector<Path_List>;
     using Extended_Sketches = unordered_map<int, Extended_Sketch>;
 
-    Extended_Sketches extended_sketches;
-    read_extended_sketches_from_txt_file(extended_sketches_path, extended_sketches);
+    // extended_sketches のリスト [dc_extended_sketches, bc_extended_sketches, cc_extended_sketches]
+    vector<Extended_Sketches> extended_sketches_list;
+
+    Extended_Sketches dc_extended_sketches;
+    Extended_Sketches bc_extended_sketches;
+    Extended_Sketches cc_extended_sketches;
+
+    read_extended_sketches_from_txt_file(dc_extended_sketches_path, dc_extended_sketches);
+    read_extended_sketches_from_txt_file(bc_extended_sketches_path, bc_extended_sketches);
+    read_extended_sketches_from_txt_file(cc_extended_sketches_path, cc_extended_sketches);
+
+    extended_sketches_list.push_back(dc_extended_sketches);
+    extended_sketches_list.push_back(bc_extended_sketches);
+    extended_sketches_list.push_back(cc_extended_sketches);
     cout << "Complete reading extended sketches" << endl;
 
 
     /* ターミナルファイルが生成済みか確認 */
-    string terminals_path = "./" + graph_name + "/terminals.txt";
-    if ( !fs::is_regular_file(terminals_path) ) {
-        cout << "There is no terminals.txt" << endl;
-        return 1;
+    vector<string> terminals_path_list;
+    int min_num_of_terminals = 3;
+    int max_num_of_terminals = 7;
+
+    for (int i = min_num_of_terminals; i <= max_num_of_terminals; ++i) {
+        string terminals_path = result_dir_path + "/terminals" + to_string(i) + ".txt";
+
+        if ( !fs::is_regular_file(terminals_path) ) {
+            cout << "There is no terminals" << i << ".txt" << endl;
+            return 1;
+        }
+
+        terminals_path_list.push_back(terminals_path);
     }
 
 
     /* ターミナルを読み込み */
-    vector<vector<int> > list_of_terminals;
-    read_list_of_terminals_from_txt_file(terminals_path, list_of_terminals);
+    // ターミナルの個数 [3, 4, 5, 6, 7] 毎に 1000 セットの terminals
+    vector<vector<vector<int> > > list_of_list_of_terminals;
+
+    for (const string& terminals_path : terminals_path_list) {
+        vector<vector<int> > list_of_terminals;
+
+        read_list_of_terminals_from_txt_file(terminals_path, list_of_terminals);
+
+        list_of_list_of_terminals.push_back(list_of_terminals);
+    }
     cout << "Complete reading terminals" << endl;
 
 
     /* extended sketches から sketches のリストを取得 */
     using Sketch = vector<vector<int> >;
     using Sketches = unordered_map<int, Sketch>;
-    
-    // 避けて経路を生成できた上位の個数の最大
-    int max_number_of_avoided_top_nodes = get_max_number_of_avoided_top_nodes(extended_sketches);
-    cout << "max number of avoided top nodes : " << max_number_of_avoided_top_nodes << endl;
-    
-    vector<Sketches> list_of_avoided_sketches
-        = get_list_of_sketches_from_extended_sketches(extended_sketches, max_number_of_avoided_top_nodes);
+
+    // [dc上位を避けたsketchesのリスト, bc上位を避けたsketchesのリスト, cc上位を避けたsketchesのリスト]
+    vector<vector<Sketches> > list_of_list_of_sketches;
+
+    // 避けて経路を生成できた[dc上位の個数の最大, bc上位の個数の最大, cc上位の個数の最大]
+    vector<int> max_number_of_avoided_top_nodes_list;
+
+    for (const Extended_Sketches& extended_sketches : extended_sketches_list) {
+        // 避けて経路を生成できた上位の個数の最大
+        int max_number_of_avoided_top_nodes = get_max_number_of_avoided_top_nodes(extended_sketches);
+        max_number_of_avoided_top_nodes_list.push_back(max_number_of_avoided_top_nodes);
+        
+        // degree 上位を避けた sketches のリスト
+        vector<Sketches> list_of_sketches
+            = get_list_of_sketches_from_extended_sketches(extended_sketches, max_number_of_avoided_top_nodes);
+        
+        list_of_list_of_sketches.push_back(list_of_sketches);
+    }
     cout << "Complete getting list of avoided sketches" << endl;
 
 
-    /* extended sketches を分割 */
-    // 分割する長さを決定
-    double length_to_divide_sketches = 0.05;
-    // cout << "length to divide sketches (e.g., 0.05) : ";
-    // cin >> length_to_divide_sketches;
-
-    // 次数の降順にソートしたノードリストを取得
-    vector<int> node_list_sorted_by_degree = graph.get_node_list_sorted_by_degree();
-
-    // list_of_sketches 内の Sketches を分割
-    // 外側の vector : 避けた上位ノードの個数             [original, 1, 2, 4, ...]
-    // 内側の vector : sketch の保持を限定したノードの範囲   [no division, 0-5, 5-10, ...]
-    // 0-5 以降は partial sketches
-    vector<vector<Sketches> > list_of_list_of_sketches;
-
-    for (const Sketches& sketches : list_of_avoided_sketches) {
-        vector<Sketches> tmp_list_of_sketches;
-
-        // no division を最初に追加
-        tmp_list_of_sketches.push_back(sketches);
-
-        // 分割した partial_sketches を追加
-        vector<Sketches> tmp_list_of_partial_sketches
-            = divide_sketches(sketches, length_to_divide_sketches, node_list_sorted_by_degree);
-        
-        tmp_list_of_sketches.insert(
-            tmp_list_of_sketches.end(),
-            tmp_list_of_partial_sketches.begin(),
-            tmp_list_of_partial_sketches.end()
-        );
-
-        list_of_list_of_sketches.push_back(tmp_list_of_sketches);
-    }
-    cout << "Complete dividing extended sketches" << endl;
+    /* 避けられた上位ノードの個数を表示 */
+    cout << "max number of avoided top nodes" << endl;
+    cout << "dc : " << max_number_of_avoided_top_nodes_list[0] << endl;
+    cout << "bc : " << max_number_of_avoided_top_nodes_list[1] << endl;
+    cout << "cc : " << max_number_of_avoided_top_nodes_list[2] << endl;
 
 
     /* x軸の値のリストを取得 */
-    vector<string> x_list_for_avoided_top_nodes
-        = get_x_list_for_avoided_top_nodes(max_number_of_avoided_top_nodes);
-
-    vector<string> x_list_for_limit_range
-        = get_x_list_for_limit_range(length_to_divide_sketches);
+    // 外側 避けた上位ノードの種類 [dc, bc, cc]
+    // 内側 避けた上位ノードの個数 [original, 1, 2, 4, ...]
+    vector<vector<string> > list_of_x_list;
+    
+    list_of_x_list.push_back(get_x_list_for_avoided_top_nodes(max_number_of_avoided_top_nodes_list[0]));
+    list_of_x_list.push_back(get_x_list_for_avoided_top_nodes(max_number_of_avoided_top_nodes_list[1]));
+    list_of_x_list.push_back(get_x_list_for_avoided_top_nodes(max_number_of_avoided_top_nodes_list[2]));
     cout << "Complete getting x list" << endl;
 
 
     /* 評価の値のリスト */
-    // 外側の vector : 避けた上位ノードの個数             [original, 1, 2, 4, ...]
-    // 内側の vector : sketch の保持を限定したノードの範囲   [no division, 0-5, 5-10, ...]
-    vector<vector<double> > list_of_list_of_overlap_ratio(
-        x_list_for_avoided_top_nodes.size(),
-        vector<double>(x_list_for_limit_range.size(), 0)
-    );
-    vector<vector<double> > list_of_list_of_ST_size(
-        x_list_for_avoided_top_nodes.size(),
-        vector<double>(x_list_for_limit_range.size(), 0)
-    );
-    vector<vector<double> > list_of_list_of_sum_of_degree(
-        x_list_for_avoided_top_nodes.size(),
-        vector<double>(x_list_for_limit_range.size(), 0)
-    );
-    vector<vector<double> > list_of_list_of_sum_of_bc(
-        x_list_for_avoided_top_nodes.size(),
-        vector<double>(x_list_for_limit_range.size(), 0)
-    );
+    // 外 ターミナルの個数      [3, 4, 5, 6, 7]
+    // 中 避けた上位ノードの種類 [dc, bc, cc]
+    // 内 避けた上位ノードの個数 [original, 1, 2, 4, ...]
+    vector<vector<vector<double> > > threeDlist_of_overlap_ratio;
+    vector<vector<vector<double> > > threeDlist_of_ST_size;
+    vector<vector<vector<double> > > threeDlist_of_sum_of_dc;
+    vector<vector<vector<double> > > threeDlist_of_sum_of_bc;
+    vector<vector<vector<double> > > threeDlist_of_sum_of_cc;
 
-    // BC の読み込み
-    unordered_map<int, double> bc_map;
+    for (int i = 0; i < list_of_list_of_terminals.size(); ++i) {
+        vector<vector<double> > list_of_list_of_evaluation;
+
+        for (const vector<string>& x_list : list_of_x_list) {
+            vector<double> list_of_evaluation(x_list.size(), 0);
+            list_of_list_of_evaluation.push_back(list_of_evaluation);
+        }
+
+        threeDlist_of_overlap_ratio.push_back(list_of_list_of_evaluation);
+        threeDlist_of_ST_size.push_back(list_of_list_of_evaluation);
+        threeDlist_of_sum_of_dc.push_back(list_of_list_of_evaluation);
+        threeDlist_of_sum_of_bc.push_back(list_of_list_of_evaluation);
+        threeDlist_of_sum_of_cc.push_back(list_of_list_of_evaluation);
+    }
+
+
+    /* DC, BC, CC の読み込み */
+    string DC_txt_path = "./" + graph_name + "/DC.txt";
     string BC_txt_path = "./" + graph_name + "/BC.txt";
+    string CC_txt_path = "./" + graph_name + "/CC.txt";
+
+    unordered_map<int, double> dc_map;
+    unordered_map<int, double> bc_map;
+    unordered_map<int, double> cc_map;
+
+    read_bc_from_txt_file(DC_txt_path, dc_map);
     read_bc_from_txt_file(BC_txt_path, bc_map);
+    read_bc_from_txt_file(CC_txt_path, cc_map);
 
 
-    /* ST 確認の為の準備 */ 
-    // partial sketchLS の ST の葉がターミナルだけか確認のため
-    vector<Graph> list_of_ST_for_checking;
+    /* ST 確認の為の準備 */
+    // 外 ターミナルの個数      [3, 4, 5, 6, 7]
+    // 内 避けた上位ノードの種類 [dc, bc, cc]
+    vector<vector<Graph> > list_of_list_of_ST_for_checking;
+    // ターミナルの個数 [3, 4, 5, 6, 7]
     vector<vector<int> > list_of_terminals_for_checking;
 
 
+    /* グラフのノード数を取得 */
+    int n = graph.get_number_of_nodes();
 
 
     /* 実行 */
 
 
+    // for i [ターミナル数 3 個のターミナルリスト, ターミナル数 4 個のターミナルリスト, ...]
+    // for j [bc, dc, cc]
+    // for k [original, 上位1個避け, 上位2個避け, 上位4個避け, ...]
+    for (int i = 0; i < list_of_list_of_terminals.size(); ++i) {
+        cout << i + 3 << "set start" << endl;
 
+        int count_terminals = 0;
+        for ( const vector<int>& terminals : list_of_list_of_terminals.at(i) ) {
+            ++count_terminals;
 
-    // 何セット目の実行か確認
-    int count_terminals = 0;
+            // STのリストのリスト
+            // 外 避けた上位ノードの種類 [bc, dc, cc]
+            // 内 避けた上位ノードの個数 [original, 1, 2, 4, ...]
+            vector<vector<Graph> > list_of_list_of_ST;
 
-    // グラフのノード数を取得
-    int n = graph.get_number_of_nodes();
+            // sketchLS 実行
+            for (const vector<Sketches>& list_of_sketches : list_of_list_of_sketches) {
+                vector<Graph> list_of_ST;
 
-    for (const vector<int>& terminals : list_of_terminals) {
-        ++count_terminals;
-        cout << "set " << count_terminals << " starts" << endl;
-
-        // 外側の vector : 避けた上位ノードの個数             [original, 1, 2, 4, ...]
-        // 内側の vector : sketch の保持を限定したノードの範囲   [no division, 0-5, 5-10, ...]
-        vector<vector<Graph> > list_of_list_of_ST;
-
-        // sketchLS or partial_sketchLS 実行
-        for (const vector<Sketches>& list_of_sketches : list_of_list_of_sketches) {
-            vector<Graph> tmp_list_of_ST;
-
-            for (const Sketches& sketches : list_of_sketches) {
-                // 全ノードの Sketch を持つ sketches は sketchLS
-                if (sketches.size() == n) {
-                    tmp_list_of_ST.push_back(sketchLS(graph, terminals, sketches));
-                    continue;
+                for (const Sketches& sketches : list_of_sketches) {
+                    list_of_ST.push_back(sketchLS(graph, terminals, sketches));
                 }
 
-                // 全ノードの Sketch を持たない sketches は partial_sketchLS
-                tmp_list_of_ST.push_back(partial_sketchLS(graph, terminals, sketches));
+                list_of_list_of_ST.push_back(list_of_ST);
             }
 
-            list_of_list_of_ST.push_back(tmp_list_of_ST);
-        }
+            // overlap_ratio 記録
+            const Graph& original_ST = list_of_list_of_ST.front().front();
+            for (int j = 0; j < list_of_list_of_sketches.size(); ++j) {
+                for (int k = 0; k < list_of_list_of_sketches.at(j).size(); ++k) {
+                    threeDlist_of_overlap_ratio[i][j][k]
+                        += evaluate_overlap_ratio(original_ST, list_of_list_of_ST.at(j).at(k), terminals);
+                }
+            }
 
-        // overlap ratio 記録
-        const Graph& original_ST = list_of_list_of_ST.front().front();
-        for (int i = 0; i < list_of_list_of_ST.size(); ++i) {
-            for (int j = 0; j < list_of_list_of_ST.at(i).size(); ++j) {
-                list_of_list_of_overlap_ratio[i][j]
-                    += evaluate_overlap_ratio(original_ST, list_of_list_of_ST[i][j], terminals);
+            // サイズ記録
+            for (int j = 0; j < list_of_list_of_sketches.size(); ++j) {
+                for (int k = 0; k < list_of_list_of_sketches.at(j).size(); ++k) {
+                    threeDlist_of_ST_size[i][j][k]
+                        += list_of_list_of_ST.at(j).at(k).get_number_of_edges();
+                }
+            }
+
+            // dc の合計記録
+            for (int j = 0; j < list_of_list_of_sketches.size(); ++j) {
+                for (int k = 0; k < list_of_list_of_sketches.at(j).size(); ++k) {
+                    threeDlist_of_sum_of_dc[i][j][k]
+                        += evaluate_sum_of_centrality(dc_map, list_of_list_of_ST.at(j).at(k), terminals);
+                }
+            }
+
+            // bc の合計記録
+            for (int j = 0; j < list_of_list_of_sketches.size(); ++j) {
+                for (int k = 0; k < list_of_list_of_sketches.at(j).size(); ++k) {
+                    threeDlist_of_sum_of_bc[i][j][k]
+                        += evaluate_sum_of_centrality(bc_map, list_of_list_of_ST.at(j).at(k), terminals);
+                }
+            }
+
+            // cc の合計記録
+            for (int j = 0; j < list_of_list_of_sketches.size(); ++j) {
+                for (int k = 0; k < list_of_list_of_sketches.at(j).size(); ++k) {
+                    threeDlist_of_sum_of_cc[i][j][k]
+                        += evaluate_sum_of_centrality(cc_map, list_of_list_of_ST.at(j).at(k), terminals);
+                }
+            }
+
+            // ST 確認のため
+            if (count_terminals == 1) {
+                vector<Graph> list_of_ST_for_checking;
+                for (const vector<Graph>& list_of_ST : list_of_list_of_ST) {
+                    list_of_ST_for_checking.push_back(list_of_ST.back());
+                }
+
+                list_of_list_of_ST_for_checking.push_back(list_of_ST_for_checking);
+                list_of_terminals_for_checking.push_back(terminals);
             }
         }
-
-        // サイズ記録
-        for (int i = 0; i < list_of_list_of_ST.size(); ++i) {
-            for (int j = 0; j < list_of_list_of_ST.at(i).size(); ++j) {
-                list_of_list_of_ST_size[i][j]
-                    += list_of_list_of_ST[i][j].get_number_of_edges();
-            }
-        }
-
-        // ターミナルを除くノードの次数の合計を記録
-        for (int i = 0; i < list_of_list_of_ST.size(); ++i) {
-            for (int j = 0; j < list_of_list_of_ST.at(i).size(); ++j) {
-                list_of_list_of_sum_of_degree[i][j]
-                    += evaluate_sum_of_degree(graph, list_of_list_of_ST[i][j], terminals);
-            }
-        }
-
-        // ターミナルを除くノードのBCの合計を記録
-        for (int i = 0; i < list_of_list_of_ST.size(); ++i) {
-            for (int j = 0; j < list_of_list_of_ST.at(i).size(); ++j) {
-                list_of_list_of_sum_of_bc[i][j]
-                    += evaluate_sum_of_bc(bc_map, list_of_list_of_ST[i][j], terminals);
-            }
-        }
-
-        // ST 確認のため
-        if (count_terminals % (list_of_terminals.size() / 10) == 0) {
-            // 最も上位を避けて, 下位に sketch をもたせた場合の ST をチェック
-            list_of_ST_for_checking.push_back(list_of_list_of_ST.back().back());
-            list_of_terminals_for_checking.push_back(terminals);
-        }
-
-
     }
     cout << "Complete executing" << endl;
 
 
     /* 平均化 */
-    for (vector<double>& list_of_overlap_ratio : list_of_list_of_overlap_ratio) {
-        for (double& overlap_ratio : list_of_overlap_ratio) {
-            overlap_ratio /= list_of_terminals.size();
+    for (int i = 0; i < threeDlist_of_overlap_ratio.size(); ++i) {
+        for (int j = 0; j < threeDlist_of_overlap_ratio.at(i).size(); ++j) {
+            for (int k = 0; k < threeDlist_of_overlap_ratio.at(i).at(j).size(); ++k) {
+                threeDlist_of_overlap_ratio[i][j][k] /= list_of_list_of_terminals.at(i).size();
+            }
         }
     }
 
-    for (vector<double>& list_of_ST_size : list_of_list_of_ST_size) {
-        for (double& ST_size : list_of_ST_size) {
-            ST_size /= list_of_terminals.size();
+    for (int i = 0; i < threeDlist_of_ST_size.size(); ++i) {
+        for (int j = 0; j < threeDlist_of_ST_size.at(i).size(); ++j) {
+            for (int k = 0; k < threeDlist_of_ST_size.at(i).at(j).size(); ++k) {
+                threeDlist_of_ST_size[i][j][k] /= list_of_list_of_terminals.at(i).size();
+            }
         }
     }
 
-    for (vector<double>& list_of_sum_of_degree : list_of_list_of_sum_of_degree) {
-        for (double& sum_of_degree : list_of_sum_of_degree) {
-            sum_of_degree /= list_of_terminals.size();
+    for (int i = 0; i < threeDlist_of_sum_of_dc.size(); ++i) {
+        for (int j = 0; j < threeDlist_of_sum_of_dc.at(i).size(); ++j) {
+            for (int k = 0; k < threeDlist_of_sum_of_dc.at(i).at(j).size(); ++k) {
+                threeDlist_of_sum_of_dc[i][j][k] /= list_of_list_of_terminals.at(i).size();
+            }
         }
     }
 
-    for (vector<double>& list_of_sum_of_bc : list_of_list_of_sum_of_bc) {
-        for (double& sum_of_bc : list_of_sum_of_bc) {
-            sum_of_bc /= list_of_terminals.size();
+    for (int i = 0; i < threeDlist_of_sum_of_bc.size(); ++i) {
+        for (int j = 0; j < threeDlist_of_sum_of_bc.at(i).size(); ++j) {
+            for (int k = 0; k < threeDlist_of_sum_of_bc.at(i).at(j).size(); ++k) {
+                threeDlist_of_sum_of_bc[i][j][k] /= list_of_list_of_terminals.at(i).size();
+            }
+        }
+    }
+
+    for (int i = 0; i < threeDlist_of_sum_of_cc.size(); ++i) {
+        for (int j = 0; j < threeDlist_of_sum_of_cc.at(i).size(); ++j) {
+            for (int k = 0; k < threeDlist_of_sum_of_cc.at(i).at(j).size(); ++k) {
+                threeDlist_of_sum_of_cc[i][j][k] /= list_of_list_of_terminals.at(i).size();
+            }
         }
     }
     cout << "Complete averaging" << endl;
 
 
     /* 評価を保存 */
-    string overlap_ratio_path = result_dir_path + "/overlap_ratio.txt";
-    string ST_size_path = result_dir_path + "/size.txt";
-    string sum_of_degree_path = result_dir_path + "/sum_of_degree.txt";
-    string sum_of_bc_path = result_dir_path + "/sum_of_bc.txt";
+    vector<string> result_dir_path_list;
+    result_dir_path_list.push_back(dc_result_dir_path);
+    result_dir_path_list.push_back(bc_result_dir_path);
+    result_dir_path_list.push_back(cc_result_dir_path);
 
-    write_overlap_ratio(
-        overlap_ratio_path,
-        x_list_for_avoided_top_nodes,
-        x_list_for_limit_range,
-        list_of_list_of_overlap_ratio);
-    
-    write_ST_size(
-        ST_size_path,
-        x_list_for_avoided_top_nodes,
-        x_list_for_limit_range,
-        list_of_list_of_ST_size);
+    // for i [dc, bc, cc]
+    // for j [3, 4, 5, 6, 7]
+    for (int i = 0; i < result_dir_path_list.size(); ++i) {
+        for (int j = min_num_of_terminals; j <= max_num_of_terminals; ++j) {
+            // ターミナルの個数に応じたディレクトリを用意
+            string terminal_result_dir_path = result_dir_path_list.at(i) + "/terminals" + to_string(j);
+            fs::create_directories(terminal_result_dir_path);
 
-    write_sum_of_degree(
-        sum_of_degree_path,
-        x_list_for_avoided_top_nodes,
-        x_list_for_limit_range,
-        list_of_list_of_sum_of_degree);
+            string overlap_ratio_path = terminal_result_dir_path + "/overlap_ratio.txt";
+            string ST_size_path       = terminal_result_dir_path + "/ST_size.txt";
+            string sum_of_dc_path     = terminal_result_dir_path + "/sum_of_dc.txt";
+            string sum_of_bc_path     = terminal_result_dir_path + "/sum_of_bc.txt";
+            string sum_of_cc_path     = terminal_result_dir_path + "/sum_of_cc.txt";
 
-    write_sum_of_bc(
-        sum_of_bc_path,
-        x_list_for_avoided_top_nodes,
-        x_list_for_limit_range,
-        list_of_list_of_sum_of_bc);
+            write_evaluation(
+                overlap_ratio_path,
+                list_of_x_list.at(i),
+                threeDlist_of_overlap_ratio.at(j).at(i) );
 
+            write_evaluation(
+                overlap_ratio_path,
+                list_of_x_list.at(i),
+                threeDlist_of_ST_size.at(j).at(i) );
+
+            write_evaluation(
+                overlap_ratio_path,
+                list_of_x_list.at(i),
+                threeDlist_of_sum_of_dc.at(j).at(i) );
+
+            write_evaluation(
+                overlap_ratio_path,
+                list_of_x_list.at(i),
+                threeDlist_of_sum_of_bc.at(j).at(i) );
+
+            write_evaluation(
+                overlap_ratio_path,
+                list_of_x_list.at(i),
+                threeDlist_of_sum_of_cc.at(j).at(i) );
+        }
+    }
     cout << "Complete writing evaluation" << endl;
 
 
-    // ST 確認の為に保存
-    string ST_checking_path = result_dir_path + "/ST_checking";
-    fs::create_directories(ST_checking_path);
-    int count_for_ST_checking = 1;
-    for (int i = 0; i < list_of_ST_for_checking.size(); ++i) {
-        const Graph& ST = list_of_ST_for_checking.at(i);
-        const vector<int>& terminals = list_of_terminals_for_checking.at(i);
+    /* ST 確認のために保存 */
+    // for i [dc, bc, cc]
+    // for j [3, 4, 5, 6, 7]
+    for (int i = 0; i < result_dir_path_list.size(); ++i) {
+        // ディレクトリを用意
+        string ST_checking_path = result_dir_path_list.at(i) + "/ST_checking";
+        fs::create_directories(ST_checking_path);
 
-        string ST_path = ST_checking_path + "/ST" + to_string(count_for_ST_checking) + ".txt";
+        // ターミナル数毎のSTを保存
+        for (int j = min_num_of_terminals; j <= max_num_of_terminals; ++j) {
+            const Graph& ST = list_of_list_of_ST_for_checking.at(j).at(i);
+            const vector<int>& terminals = list_of_terminals_for_checking.at(j);
 
-        write_graph(ST_path, ST);
-        write_terminals_to_exisiting_txt(ST_path, terminals);
+            string ST_path = ST_checking_path + "/ST" + to_string(j) + ".txt";
 
-        ++count_for_ST_checking;
+            write_graph(ST_path, ST);
+            write_terminals_to_exisiting_txt(ST_path, terminals);
+        }
     }
     cout << "Complete writing STs for checking" << endl;
+
 
     return 0;
 }

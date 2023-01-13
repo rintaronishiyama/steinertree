@@ -2,6 +2,7 @@
 #define GUARD_WRITE_H
 
 #include <vector>
+#include <unordered_set>
 #include <unordered_map>
 #include <string>
 #include <utility>
@@ -28,32 +29,15 @@ void write_precomputation_time(
     std::string file_path,
     const std::vector<std::pair<std::string, double> >& precomputation_time_list);
 
-void write_overlap_ratio(
+void write_evaluation(
     std::string file_path,
-    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
-    const std::vector<std::string>& x_list_for_limit_range,
-    const std::vector<std::vector<double> >& list_of_list_of_overlap_ratio
+    const std::vector<std::string>& x_list,
+    const std::vector<double>& list_of_evaluation
 );
 
-void write_ST_size(
+void write_seed_node_sets(
     std::string file_path,
-    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
-    const std::vector<std::string>& x_list_for_limit_range,
-    const std::vector<std::vector<double> >& list_of_list_of_ST_size
-);
-
-void write_sum_of_degree(
-    std::string file_path,
-    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
-    const std::vector<std::string>& x_list_for_limit_range,
-    const std::vector<std::vector<double> >& list_of_list_of_sum_of_degree
-);
-
-void write_sum_of_bc(
-    std::string file_path,
-    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
-    const std::vector<std::string>& x_list_for_limit_range,
-    const std::vector<std::vector<double> >& list_of_list_of_sum_of_bc
+    const std::vector<std::unordered_set<int> >& seed_node_sets
 );
 
 #endif // GUARD_WRITE_H
