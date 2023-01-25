@@ -423,12 +423,13 @@ vector<int> Graph::bfs_from_source_node_set_avoiding_another_node_set(
 
         for (const int& to : this->get_adjacency_list().at(from)) { // from の隣接頂点を見ていく
             if (dist[to] != 1e9) continue; // 訪問済みなら飛ばす
-            if ( node_set_to_avoid.count(to) ) continue;  // 避けるノード集合にあれば飛ばす
 
             dist[to] = dist[from] + 1;     // 現在頂点から+1した距離を記録
             pre[to] = from;                // 現在頂点を1つ前の頂点として記録
 
-            que.push(to);
+            if ( node_set_to_avoid.count(to) == 0) {  // 避けるノード集合になければそれ以降の探索継続
+                que.push(to);
+            }
         }
     }
 
