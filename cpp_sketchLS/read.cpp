@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <map>
 #include "graph.h"
 #include "split.h"
@@ -14,6 +15,7 @@ using std::cout;
 using std::endl;
 using std::stoi;
 using std::unordered_map;
+using std::unordered_set;
 using std::map;
 
 // 指定したファイルからグラフを読み込み
@@ -114,9 +116,9 @@ void read_extended_sketches_from_txt_file(
 }
 
 
-void read_node_list_sorted_by_bc_from_txt_file(
+void read_node_list_sorted_by_centrality_from_txt_file(
     string file_path,
-    vector<int>& node_list_sorted_by_bc)
+    vector<int>& node_list_sorted_by_centrality)
 {
     ifstream ifs(file_path);
     if (!ifs) {
@@ -128,7 +130,7 @@ void read_node_list_sorted_by_bc_from_txt_file(
     while( getline(ifs, line) ) {
         vector<string> str_list = split(line, ' ');
         int node = stoi(str_list[0]);
-        node_list_sorted_by_bc.push_back(node);
+        node_list_sorted_by_centrality.push_back(node);
     }
 }
 
@@ -157,9 +159,9 @@ void read_list_of_terminals_from_txt_file(
 }
 
 
-void read_bc_from_txt_file(
+void read_centrality_from_txt_file(
     string file_path,
-    unordered_map<int, double>& bc_map)
+    unordered_map<int, double>& centrality_map)
 {
     ifstream ifs(file_path);
     if (!ifs) {
@@ -174,6 +176,50 @@ void read_bc_from_txt_file(
         int node = stoi( str_list.at(0) );
         double bc = stod( str_list.at(1) );
 
-        bc_map[node] = bc;
+        centrality_map[node] = bc;
+    }
+}
+
+
+void read_seed_node_sets(
+    string file_path,
+    vector<unordered_set<int> >& seed_node_sets)
+{
+    ifstream ifs(file_path);
+    if (!ifs) {
+        throw "Failed to open file";
+    }
+
+    string line;
+
+    while( getline(ifs, line) ) {
+        vector<string> str_list = split(line, ' ');
+        
+        unordered_set<int> seed_node_set;
+
+        for (const string& str : str_list) {
+            seed_node_set.insert( stoi(str) );
+        }
+
+        seed_node_sets.push_back(seed_node_set);
+    }
+}
+
+
+void read_x_list(
+    string file_path,
+    vector<string>& x_list)
+{
+    ifstream ifs(file_path);
+    if (!ifs) {
+        throw "Failed to open file";
+    }
+
+    string line;
+
+    while( getline(ifs, line) ) {
+        vector<string> str_list = split(line, ' ');
+        
+        x_list.push_back( str_list.at(0) );
     }
 }

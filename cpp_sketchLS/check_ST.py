@@ -40,10 +40,12 @@ def draw_ST_in_dir(dir_path) :
         if file[-3:] == "txt" :
             draw_ST(dir_path + "/" + file)
 
-dataset_name = "ego-facebook"
-draw_ST_in_dir("./" + dataset_name + "/degree/ST_checking")
-draw_ST_in_dir("./" + dataset_name + "/bc/ST_checking")
 
-dataset_name = "large-facebook"
-draw_ST_in_dir("./" + dataset_name + "/degree/ST_checking")
-draw_ST_in_dir("./" + dataset_name + "/bc/ST_checking")
+graph_name_list = ["ego-facebook", "large-facebook"]
+interval_list   = ["add", "increment", "multiply"]
+centrality_list = ["DC", "CC", "BC"]
+
+for graph_name in graph_name_list :
+    for interval in interval_list :
+        for centrality in centrality_list :
+            draw_ST_in_dir("./" + graph_name + "/" + interval + "/" + centrality + "/ST_checking")

@@ -99,12 +99,13 @@ void write_terminals_to_exisiting_txt(string file_path, const vector<int>& termi
 
 void write_precomputation_time(
     string file_path,
-    const vector<pair<string, double> >& precomputation_time_pair_list)
+    const vector<double>& precomputation_time_ms_list,
+    const vector<string>& x_list)
 {
     ofstream ofs(file_path);
 
-    for (const pair<string, double>& item : precomputation_time_pair_list) {
-        ofs << item.first << " : " << item.second << "ms" << endl;
+    for (int i = 0; i < x_list.size(); ++i) {
+        ofs << x_list.at(i) << " " << precomputation_time_ms_list.at(i) << endl;
     }
 }
 
@@ -134,5 +135,38 @@ void write_seed_node_sets (
         }
 
         ofs << endl;
+    }
+}
+
+void write_seed_node_sets_time(
+    string file_path,
+    const double& elapsed)
+{
+    ofstream ofs(file_path);
+
+    ofs << elapsed << endl;
+}
+
+void write_x_list (
+    string file_path,
+    const vector<string>& x_list)
+{
+    ofstream ofs(file_path);
+
+    for (const string& x : x_list) {
+        ofs << x << endl;
+    }
+}
+
+
+void write_avoidability_list (
+    string file_path,
+    const vector<double>& avoidability_list,
+    const vector<string>& x_list)
+{
+    ofstream ofs(file_path);
+
+    for (int i = 0; i < avoidability_list.size(); ++i) {
+        ofs << x_list.at(i) << " " << avoidability_list.at(i) << endl;
     }
 }

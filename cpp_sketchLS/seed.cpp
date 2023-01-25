@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <unordered_set>
 #include <vector>
+#include <chrono>
 #include "read.h"
 #include "write.h"
 #include "graph.h"
@@ -16,7 +17,7 @@ using std::unordered_set;
 using std::vector;
 
 namespace fs = std::filesystem;
-
+namespace ch = std::chrono;
 
 // Files to compile
 // seed.cpp read.cpp write.cpp graph.cpp random.cpp split.cpp
@@ -50,7 +51,11 @@ int main(int argc, char* argv[])
 
 
     /* シードノード集合の決定 */
+    ch::system_clock::time_point start = ch::system_clock::now();
     vector<unordered_set<int> > seed_node_sets = decide_seed_node_sets(graph);
+    ch::system_clock::time_point end   = ch::system_clock::now();
+
+    double elapsed = static_cast<double>(ch::duration_cast<ch::milliseconds>(end - start).count());
     cout << "Complete deciding seed node sets" << endl;
 
 
@@ -58,5 +63,11 @@ int main(int argc, char* argv[])
     fs::create_directories("./" + graph_name);
     string seed_node_sets_path = "./" + graph_name + "/seed_node_sets.txt";
     write_seed_node_sets(seed_node_sets_path, seed_node_sets);
+
+    /* 計算時間を保存 */
+    string seed_node_sets_time_path = "./" + graph_name + "/seed_node_sets_time.txt";
+    write_seed_node_sets_time(seed_node_sets_time_path, elapsed);
+
+    return 0;
 }
 

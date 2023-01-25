@@ -46,7 +46,9 @@ int main(int argc, char* argv[]) {
 
 
     /* 試行回数の決定 */
-    int number_of_trials = 1000;
+    int number_of_trials;
+    cout << "number of trials :";
+    cin >> number_of_trials;
 
 
     /* terminals のリストを作成 */
