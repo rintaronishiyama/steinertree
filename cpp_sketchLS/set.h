@@ -19,4 +19,9 @@ std::vector<std::unordered_set<int> > get_node_sets_from_node_list_by_multiply(
     int max_size
 );
 
+std::vector<std::unordered_set<int> > get_node_sets_from_node_list_by_all(
+    const std::vector<int>& node_list,
+    int max_size
+);
+
 #endif // GUARD_SET_H

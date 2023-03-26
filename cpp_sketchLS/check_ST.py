@@ -41,8 +41,10 @@ def draw_ST_in_dir(dir_path) :
             draw_ST(dir_path + "/" + file)
 
 
-graph_name_list = ["ego-facebook", "large-facebook"]
-interval_list   = ["add", "increment", "multiply"]
+# graph_name_list = ["ego-facebook", "large-facebook"]
+graph_name_list = ["large-facebook", "part-4_reordered"]
+# interval_list   = ["add", "increment", "multiply", "allornothing"]
+interval_list   = ["multiply"]
 centrality_list = ["DC", "CC", "BC"]
 
 for graph_name in graph_name_list :

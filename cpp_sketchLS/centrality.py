@@ -51,6 +51,9 @@ for line in lines :
 """ ノード数取得 """
 n = nx.number_of_nodes(G)
 x = list(range(n))
+for i in range(len(x)) :
+    x[i] /= n
+    x[i] *= 100
 
 """ centralityを読み込み """
 BC_dict = read_centrality("./" + dataset_name + "/BC.txt")
@@ -88,22 +91,28 @@ os.makedirs(result_dir_path, exist_ok=True)
 """ plot """
 plt.plot(x, y_for_BC)
 plt.grid()
-plt.xlabel("number of nodes")
-plt.ylabel("BC")
+plt.tick_params(labelsize=15)
+plt.xlabel("nodes ratio[%]", fontsize=15)
+plt.ylabel("BC", fontsize=15)
+plt.tight_layout()
 plt.savefig(result_dir_path + "/BC.pdf")
 plt.close()
 
 plt.plot(x, y_for_CC)
 plt.grid()
-plt.xlabel("number of nodes")
-plt.ylabel("CC")
+plt.tick_params(labelsize=15)
+plt.xlabel("nodes ratio[%]", fontsize=15)
+plt.ylabel("CC", fontsize=15)
+plt.tight_layout()
 plt.savefig(result_dir_path + "/CC.pdf")
 plt.close()
 
 plt.plot(x, y_for_DC)
 plt.grid()
-plt.xlabel("number of nodes")
-plt.ylabel("DC")
+plt.tick_params(labelsize=15)
+plt.xlabel("nodes ratio[%]", fontsize=15)
+plt.ylabel("DC", fontsize=15)
+plt.tight_layout()
 plt.savefig(result_dir_path + "/DC.pdf")
 plt.close()
 

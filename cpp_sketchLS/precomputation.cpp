@@ -57,9 +57,10 @@ int main(int argc, char* argv[])
     cout << "1 : increment" << endl;
     cout << "2 : add0.1%" << endl;
     cout << "3 : multiply2" << endl;
+    cout << "4 : allornothing" << endl;
     cin >> sketch_interval;
-    if (sketch_interval != "1" && sketch_interval != "2" && sketch_interval != "3") {
-        cout << "please slect 1 or 2 or 3" << endl;
+    if (sketch_interval != "1" && sketch_interval != "2" && sketch_interval != "3" && sketch_interval != "4") {
+        cout << "please slect 1 or 2 or 3 or 4" << endl;
         return 1;
     }
     if (sketch_interval == "1") {
@@ -71,16 +72,13 @@ int main(int argc, char* argv[])
     if (sketch_interval == "3") {
         sketch_interval = "multiply";
     }
-
-
-    /* DC上位 or BC上位 or CC上位のどれを避けた sketch 生成をするか選択 */
-    string sketch_mode;
-    cout << "select sketch mode (DC or BC or CC) : ";
-    cin >> sketch_mode;
-    if (sketch_mode != "DC" && sketch_mode != "BC" && sketch_mode != "CC") {
-        cout << "please select dc or bc or cc" << endl;
-        return 1;
+    if (sketch_interval == "4") {
+        sketch_interval = "allornothing";
     }
+
+
+    // 避ける中心性指標の種類
+    vector<string> sketch_centrality_list{"DC", "BC", "CC"};
 
 
     /* グラフのデータセットがあるか確認 */
@@ -109,53 +107,68 @@ int main(int argc, char* argv[])
     cout << "Complete reading seed node sets" << endl;
 
 
-    /* DC or BC or CC の降順にソートしたノードのリストを用意 */
-    vector<int> node_list_sorted;
-    string centrality_txt_path;
-
-    if (sketch_mode == "DC") {
-        centrality_txt_path = graph_name + "/DC.txt";
-    }
-    if (sketch_mode == "BC") {
-        centrality_txt_path = graph_name + "/BC.txt";
-    }
-    if (sketch_mode == "CC") {
-        centrality_txt_path = graph_name + "/CC.txt";
+    /* DC, BC, CC の降順にソートしたノードのリストを用意 */
+    vector< vector<int> > list_of_node_list_sorted( sketch_centrality_list.size() );
+    vector<string> list_of_centrality_txt_path;
+    for (const string& sketch_centrality : sketch_centrality_list) {
+        string centrality_txt_path = "./" + graph_name + "/" + sketch_centrality + ".txt";
+        list_of_centrality_txt_path.push_back(centrality_txt_path);
     }
 
-    read_node_list_sorted_by_centrality_from_txt_file(centrality_txt_path, node_list_sorted);
+    for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+        cout << "i " << i << endl;
+        read_node_list_sorted_by_centrality_from_txt_file(list_of_centrality_txt_path.at(i), list_of_node_list_sorted[i]);
+    }
     cout << "Complete sorting node list" << endl;
 
 
-    /* DC or BC or CC上位ノード集合のリストを取得 */
+    /* DC, BC, CC上位ノード集合のリストを取得 */
     // 最大で上位1%を避ける
     int max_size_of_top_node_set = ceil(graph.get_number_of_nodes() * 0.01);
     cout << "max size of top node set : "<< max_size_of_top_node_set << endl;
-    vector<unordered_set<int> > top_node_sets;
+
+    // [DCtop_node_sets BCtop_node_sets CCtop_node_sets]
+    vector<vector<unordered_set<int> > > list_of_top_node_sets( sketch_centrality_list.size() );
+
     if (sketch_interval == "increment") {
-        top_node_sets
-        = get_node_sets_from_node_list_by_increment(node_list_sorted, max_size_of_top_node_set);
+        for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+            list_of_top_node_sets[i] 
+                = get_node_sets_from_node_list_by_increment(list_of_node_list_sorted.at(i), max_size_of_top_node_set);
+        }
     }
     if (sketch_interval == "add") {
-        top_node_sets
-        = get_node_sets_from_node_list_by_add(node_list_sorted, max_size_of_top_node_set);
+        for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+            list_of_top_node_sets[i] 
+                = get_node_sets_from_node_list_by_add(list_of_node_list_sorted.at(i), max_size_of_top_node_set);
+        }
     }
     if (sketch_interval == "multiply") {
-        top_node_sets
-        = get_node_sets_from_node_list_by_multiply(node_list_sorted, max_size_of_top_node_set);
+        for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+            list_of_top_node_sets[i] 
+                = get_node_sets_from_node_list_by_multiply(list_of_node_list_sorted.at(i), max_size_of_top_node_set);
+        }
+    }
+    if (sketch_interval == "allornothing") {
+        for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+            list_of_top_node_sets[i] 
+                = get_node_sets_from_node_list_by_all(list_of_node_list_sorted.at(i), max_size_of_top_node_set);
+        }
     }
     
     cout << "Complete getting top node sets" << endl;
 
 
     /* x の値のリストを用意 */
-    vector<string> x_list = get_x_list_for_top_node_sets(top_node_sets);
+    vector<string> x_list = get_x_list_for_top_node_sets(list_of_top_node_sets.at(0));
     cout << "Complete getting x list" << endl;
 
 
     /* 時間計測の準備 */
     // シードノード集合の決定にかかる時間を除く事前計算時間
-    vector<double> precomputation_time_ms_list(x_list.size(), 0);
+    // DC BC CC の順に格納
+    vector<vector<double> > list_of_precomputation_time_ms_list(
+        sketch_centrality_list.size(),
+        vector<double>(x_list.size(), 0));
 
 
     /* ノード数の準備 */
@@ -170,46 +183,76 @@ int main(int argc, char* argv[])
     using Extended_Sketch = vector<Path_List>;
     using Extended_Sketches = vector<Extended_Sketch>; // index の値がそのままノードid
 
-    Extended_Sketches extended_sketches(n);
+    // DC BC CC
+    vector<Extended_Sketches> list_of_extended_sketches;
+    
+    for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+        Extended_Sketches extended_sketches(n);
+        list_of_extended_sketches.push_back(extended_sketches);
+    }
 
-    generate_extended_sketches(graph, seed_node_sets, top_node_sets, extended_sketches, precomputation_time_ms_list);
+    for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+        generate_extended_sketches(
+            graph,
+            seed_node_sets,
+            list_of_top_node_sets.at(i),
+            list_of_extended_sketches[i],
+            list_of_precomputation_time_ms_list[i]);
+    }
+
 
     cout << "Complete generating extended sketches" << endl;
 
 
 
     /* extended sketches の分析 */
+    // DC avoidability BC avoidability CC avoidability
     // 避けて経路を生成できた割合(少数のまま)のリスト
-    vector<double> avoidability_list = get_avoidability_list(extended_sketches, x_list);
+    vector<vector<double> > list_of_avoidability_list( sketch_centrality_list.size() );
+    for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+        list_of_avoidability_list[i] = get_avoidability_list(list_of_extended_sketches.at(i), x_list);    
+    }
 
 
     /* 結果を保存するディレクトリを用意 */
-    string result_dir_path =  "./" + graph_name + "/" + sketch_interval + "/" + sketch_mode;
-    fs::create_directories(result_dir_path);
+    // DC BC CC
+    vector<string> list_of_result_dir_path;
+    for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+        string result_dir_path = "./" + graph_name + "/" + sketch_interval + "/" + sketch_centrality_list.at(i);
+        fs::create_directories(result_dir_path);
+        list_of_result_dir_path.push_back(result_dir_path);
+    }
 
 
     /* extended_sketches 保存 */
-    fs::create_directories(result_dir_path);
-    string extended_sketches_path = result_dir_path + "/extended_sketches.txt";
-    write_extended_sketches(extended_sketches_path, extended_sketches);
+    for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+        string extended_sketches_path = list_of_result_dir_path.at(i) + "/extended_sketches.txt";
+        write_extended_sketches(extended_sketches_path, list_of_extended_sketches.at(i));
+    }
     cout << "Complete writing extended sketches" << endl;
 
 
     /* 事前計算時間の結果を保存 */
-    string precomputation_time_ms_path = result_dir_path + "/precomputation.txt";
-    write_precomputation_time(precomputation_time_ms_path, precomputation_time_ms_list, x_list);
+    for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+        string precomputation_time_ms_path = list_of_result_dir_path.at(i) + "/precomputation.txt";
+        write_precomputation_time(precomputation_time_ms_path, list_of_precomputation_time_ms_list.at(i), x_list);
+    }
     cout << "Complete writing precomputation time" << endl;
 
 
     /* xの値のリスト保存 */
-    string x_list_path = result_dir_path + "/x_list.txt";
-    write_x_list(x_list_path, x_list);
+    for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+        string x_list_path = list_of_result_dir_path.at(i) + "/x_list.txt";
+        write_x_list(x_list_path, x_list);
+    }
     cout << "Complete writing x list" << endl;
 
 
     /* avoidability のリストを保存 */
-    string avoidability_list_path = result_dir_path + "/avoidability.txt";
-    write_avoidability_list(avoidability_list_path, avoidability_list, x_list);
+    for (int i = 0; i < sketch_centrality_list.size(); ++i) {
+        string avoidability_list_path = list_of_result_dir_path.at(i) + "/avoidability.txt";
+        write_avoidability_list(avoidability_list_path, list_of_avoidability_list.at(i), x_list);
+    }
     cout << "Complete writing avoidability" << endl;
 
 

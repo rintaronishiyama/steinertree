@@ -93,3 +93,20 @@ vector<unordered_set<int> > get_node_sets_from_node_list_by_multiply(
 
     return node_sets;
 }
+
+// max_size のノード集合のみを追加
+vector<unordered_set<int> > get_node_sets_from_node_list_by_all(
+    const vector<int>& node_list,
+    int max_size)
+{
+    vector<unordered_set<int> > node_sets;
+
+    // max_size のノード集合を追加
+    unordered_set<int> node_set;
+    for (int i = 0; i < max_size; ++i) {
+        node_set.insert( node_list.at(i) );
+    }
+    node_sets.push_back(node_set);
+
+    return node_sets;
+}

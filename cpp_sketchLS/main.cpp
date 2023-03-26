@@ -46,8 +46,9 @@ int main(int argc, char* argv[])
     cout << "1 : increment" << endl;
     cout << "2 : add0.1%" << endl;
     cout << "3 : multiply2" << endl;
+    cout << "4 : allornothing" << endl;
     cin >> sketch_interval;
-    if (sketch_interval != "1" && sketch_interval != "2" && sketch_interval != "3") {
+    if (sketch_interval != "1" && sketch_interval != "2" && sketch_interval != "3" && sketch_interval != "4") {
         cout << "please slect 1 or 2 or 3" << endl;
         return 1;
     }
@@ -59,6 +60,9 @@ int main(int argc, char* argv[])
     }
     if (sketch_interval == "3") {
         sketch_interval = "multiply";
+    }
+    if (sketch_interval == "4") {
+        sketch_interval = "allornothing";
     }
 
 
@@ -312,7 +316,7 @@ int main(int argc, char* argv[])
 
 
 
-        // #pragma omp parallel for
+        #pragma omp parallel for
         for (int l = 0; l < list_of_list_of_terminals.at(i).size(); ++l ) {
             vector<int> terminals = list_of_list_of_terminals.at(i).at(l);
 
