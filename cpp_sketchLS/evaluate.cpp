@@ -61,12 +61,12 @@ double evaluate_sum_of_degree(
 }
 
 
-double evaluate_sum_of_bc(
-    const unordered_map<int, double>& bc_map,
+double evaluate_sum_of_centrality(
+    const unordered_map<int, double>& centrality_map,
     const Graph& ST,
     const vector<int>& terminals)
 {
-    double sum_of_bc = 0;
+    double sum_of_centrality = 0;
 
     // ターミナル以外のノードを特定
     vector<int> node_list = ST.get_node_list();
@@ -74,10 +74,10 @@ double evaluate_sum_of_bc(
         = get_node_list_without_terminals(node_list, terminals);
 
     for (const int& node : node_list_without_terminals) {
-        sum_of_bc += bc_map.at(node);
+        sum_of_centrality += centrality_map.at(node);
     }
 
-    return sum_of_bc;
+    return sum_of_centrality;
 }
 
 

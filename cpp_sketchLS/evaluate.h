@@ -18,8 +18,8 @@ double evaluate_sum_of_degree(
     const std::vector<int>& terminals
 );
 
-double evaluate_sum_of_bc(
-    const std::unordered_map<int, double>& bc_map,
+double evaluate_sum_of_centrality(
+    const std::unordered_map<int, double>& centrality_map,
     const Graph& ST,
     const std::vector<int>& terminals
 );

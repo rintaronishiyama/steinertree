@@ -1,0 +1,5 @@
+0 -nan
+1 -nan
+2 -nan
+4 -nan
+8 -nan

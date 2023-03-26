@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <unordered_map>
 #include <utility> // std::pair
 #include <fstream>
@@ -8,6 +9,7 @@
 using std::string;
 using std::vector;
 using std::unordered_map;
+using std::unordered_set;
 using std::ofstream;
 using std::endl;
 using std::pair;
@@ -97,81 +99,74 @@ void write_terminals_to_exisiting_txt(string file_path, const vector<int>& termi
 
 void write_precomputation_time(
     string file_path,
-    const vector<pair<string, double> >& precomputation_time_pair_list)
+    const vector<double>& precomputation_time_ms_list,
+    const vector<string>& x_list)
 {
     ofstream ofs(file_path);
 
-    for (const pair<string, double>& item : precomputation_time_pair_list) {
-        ofs << item.first << " : " << item.second << "ms" << endl;
-    }
-}
-
-void write_overlap_ratio(
-    string file_path,
-    const vector<string>& x_list_for_avoided_bc_top_nodes, 
-    const vector<string>& x_list_for_limit_range,
-    const vector<vector<double> >& list_of_list_of_overlap_raio)
-{
-    ofstream ofs(file_path);
-
-    for (int i = 0; i < list_of_list_of_overlap_raio.size(); ++i) {
-        for (int j = 0; j < list_of_list_of_overlap_raio.at(i).size(); ++j) {
-            ofs << x_list_for_avoided_bc_top_nodes.at(i) << " "
-                << x_list_for_limit_range.at(j) << " "
-                << list_of_list_of_overlap_raio.at(i).at(j) << endl;
-        }
-    }
-}
-
-void write_ST_size(
-    string file_path,
-    const vector<string>& x_list_for_avoided_bc_top_nodes, 
-    const vector<string>& x_list_for_limit_range,
-    const vector<vector<double> >& list_of_list_of_ST_size)
-{
-    ofstream ofs(file_path);
-
-    for (int i = 0; i < list_of_list_of_ST_size.size(); ++i) {
-        for (int j = 0; j < list_of_list_of_ST_size.at(i).size(); ++j) {
-            ofs << x_list_for_avoided_bc_top_nodes.at(i) << " "
-                << x_list_for_limit_range.at(j) << " "
-                << list_of_list_of_ST_size.at(i).at(j) << endl;
-        }
+    for (int i = 0; i < x_list.size(); ++i) {
+        ofs << x_list.at(i) << " " << precomputation_time_ms_list.at(i) << endl;
     }
 }
 
 
-void write_sum_of_degree(
+void write_evaluation(
     string file_path,
-    const vector<string>& x_list_for_avoided_bc_top_nodes, 
-    const vector<string>& x_list_for_limit_range,
-    const vector<vector<double> >& list_of_list_of_sum_of_degree)
+    const vector<string>& x_list,
+    const vector<double>& list_of_evaluation)
 {
     ofstream ofs(file_path);
 
-    for (int i = 0; i < list_of_list_of_sum_of_degree.size(); ++i) {
-        for (int j = 0; j < list_of_list_of_sum_of_degree.at(i).size(); ++j) {
-            ofs << x_list_for_avoided_bc_top_nodes.at(i) << " "
-                << x_list_for_limit_range.at(j) << " "
-                << list_of_list_of_sum_of_degree.at(i).at(j) << endl;
-        }
+    for (int i = 0; i < x_list.size(); ++i) {
+        ofs << x_list.at(i) << " " << list_of_evaluation.at(i) << endl;
     }
 }
 
 
-void write_sum_of_bc(
+void write_seed_node_sets (
     string file_path,
-    const vector<string>& x_list_for_avoided_bc_top_nodes, 
-    const vector<string>& x_list_for_limit_range,
-    const vector<vector<double> >& list_of_list_of_sum_of_bc)
+    const vector<unordered_set<int> >& seed_node_sets)
 {
     ofstream ofs(file_path);
 
-    for (int i = 0; i < list_of_list_of_sum_of_bc.size(); ++i) {
-        for (int j = 0; j < list_of_list_of_sum_of_bc.at(i).size(); ++j) {
-            ofs << x_list_for_avoided_bc_top_nodes.at(i) << " "
-                << x_list_for_limit_range.at(j) << " "
-                << list_of_list_of_sum_of_bc.at(i).at(j) << endl;
+    for (const unordered_set<int>& seed_node_set : seed_node_sets) {
+        for (const int& seed_node : seed_node_set) {
+            ofs << seed_node << " ";
         }
+
+        ofs << endl;
+    }
+}
+
+void write_seed_node_sets_time(
+    string file_path,
+    const double& elapsed)
+{
+    ofstream ofs(file_path);
+
+    ofs << elapsed << endl;
+}
+
+void write_x_list (
+    string file_path,
+    const vector<string>& x_list)
+{
+    ofstream ofs(file_path);
+
+    for (const string& x : x_list) {
+        ofs << x << endl;
+    }
+}
+
+
+void write_avoidability_list (
+    string file_path,
+    const vector<double>& avoidability_list,
+    const vector<string>& x_list)
+{
+    ofstream ofs(file_path);
+
+    for (int i = 0; i < avoidability_list.size(); ++i) {
+        ofs << x_list.at(i) << " " << avoidability_list.at(i) << endl;
     }
 }

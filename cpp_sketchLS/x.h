@@ -3,11 +3,9 @@
 
 #include <vector>
 #include <string>
+#include <unordered_set>
 
-std::vector<std::string> get_x_list_for_avoided_top_nodes(
-    int max_nubmer_of_avoided_top_nodes);
-
-std::vector<std::string> get_x_list_for_limit_range(
-    double length_to_divide);
+std::vector<std::string> get_x_list_for_top_node_sets(
+    const std::vector<std::unordered_set<int> >& top_node_sets);
 
 #endif // GUARD_X_H

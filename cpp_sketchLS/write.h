@@ -2,6 +2,7 @@
 #define GUARD_WRITE_H
 
 #include <vector>
+#include <unordered_set>
 #include <unordered_map>
 #include <string>
 #include <utility>
@@ -26,34 +27,34 @@ void write_terminals_to_exisiting_txt(std::string file_path, const std::vector<i
 
 void write_precomputation_time(
     std::string file_path,
-    const std::vector<std::pair<std::string, double> >& precomputation_time_list);
+    const std::vector<double>& precomputation_time_ms_list,
+    const std::vector<std::string>& x_list);
 
-void write_overlap_ratio(
+void write_evaluation(
     std::string file_path,
-    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
-    const std::vector<std::string>& x_list_for_limit_range,
-    const std::vector<std::vector<double> >& list_of_list_of_overlap_ratio
+    const std::vector<std::string>& x_list,
+    const std::vector<double>& list_of_evaluation
 );
 
-void write_ST_size(
+void write_seed_node_sets(
     std::string file_path,
-    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
-    const std::vector<std::string>& x_list_for_limit_range,
-    const std::vector<std::vector<double> >& list_of_list_of_ST_size
+    const std::vector<std::unordered_set<int> >& seed_node_sets
 );
 
-void write_sum_of_degree(
+void write_seed_node_sets_time(
     std::string file_path,
-    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
-    const std::vector<std::string>& x_list_for_limit_range,
-    const std::vector<std::vector<double> >& list_of_list_of_sum_of_degree
+    const double& elapsed
 );
 
-void write_sum_of_bc(
+void write_x_list(
     std::string file_path,
-    const std::vector<std::string>& x_list_for_avoided_bc_top_nodes,
-    const std::vector<std::string>& x_list_for_limit_range,
-    const std::vector<std::vector<double> >& list_of_list_of_sum_of_bc
+    const std::vector<std::string>& x_list
+);
+
+void write_avoidability_list(
+    std::string file_path,
+    const std::vector<double>& avoidability_list,
+    const std::vector<std::string>& x_list
 );
 
 #endif // GUARD_WRITE_H
